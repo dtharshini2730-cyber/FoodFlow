@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Dispatch - Order {{ order.order_number }} - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h4 fw-bold text-dark mb-1">Dispatch Goods - Order {{ order.order_number }}</h1>
+                <p class="text-muted small mb-0">Customer: <strong>{{ order.customer.name }}</strong> ({{ order.customer.state }})</p>
+            </div>
+            <a href="{{ url_for('orders.view', id=order.id) }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+        </div>
+
+        <form method="POST" action="{{ url_for('dispatch.new_dispatch', order_id=order.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="card card-custom p-4 mb-3">
+                <h2 class="h6 fw-bold mb-3 text-dark border-bottom pb-2">Dispatch Details</h2>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="vehicle_no">Vehicle / Transporter Reg #</label>
+                        <input type="text" name="vehicle_no" id="vehicle_no" class="form-control" placeholder="e.g. TN 45 AB 1234">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="remarks">Dispatch Remarks</label>
+                        <input type="text" name="remarks" id="remarks" class="form-control" placeholder="LR number, driver contact...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-custom p-4 mb-4">
+                <h2 class="h6 fw-bold mb-3 text-dark border-bottom pb-2">Select Items to Dispatch</h2>
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th class="text-center">Ordered</th>
+                                <th class="text-center">Dispatched</th>
+                                <th class="text-center">Remaining</th>
+                                <th class="text-center">FG Available</th>
+                                <th style="width: 25%;">Dispatch Now (Pkts) *</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td>
+                                    <strong>{{ item.product_name }}</strong>
+                                    <input type="hidden" name="product_id[]" value="{{ item.product_id }}">
+                                </td>
+                                <td class="text-center">{{ item.ordered_qty | qty('pkts') }}</td>
+                                <td class="text-center">{{ item.already_dispatched | qty('pkts') }}</td>
+                                <td class="text-center fw-bold">{{ item.remaining_qty | qty('pkts') }}</td>
+                                <td class="text-center text-primary fw-semibold">{{ item.available_fg_stock | qty('pkts') }}</td>
+                                <td>
+                                    <input type="number" step="1" min="0" max="{{ [item.remaining_qty, item.available_fg_stock]|min }}"
+                                           name="quantity[]" value="{{ [item.remaining_qty, item.available_fg_stock]|min }}"
+                                           class="form-control text-center fw-bold" required>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary-custom w-100 py-3 fw-bold shadow-sm d-flex justify-content-center align-items-center gap-2">
+                <i data-lucide="truck" style="width: 20px; height: 20px;"></i>
+                Confirm Shipment & Deduct Finished Goods Stock
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

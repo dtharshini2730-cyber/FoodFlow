@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock Ledger - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Central Stock Ledger</h1>
+        <p class="text-muted small mb-0">Single source of truth for all inventory movements: receipts, issues, outputs, damages and dispatches.</p>
+    </div>
+    <a href="{{ url_for('inventory.index') }}" class="btn btn-outline-secondary btn-sm">Stock Balances</a>
+</div>
+
+<!-- Ledger Filter Card -->
+<div class="card card-custom p-3 mb-4">
+    <form method="GET" action="{{ url_for('inventory.ledger') }}" class="row g-2 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label" for="item_type">Item Category</label>
+            <select name="item_type" id="item_type" class="form-select form-select-sm">
+                <option value="">-- All Categories --</option>
+                <option value="raw_material" {% if item_type == 'raw_material' %}selected{% endif %}>Raw Materials</option>
+                <option value="packaging_material" {% if item_type == 'packaging_material' %}selected{% endif %}>Packaging</option>
+                <option value="finished_good" {% if item_type == 'finished_good' %}selected{% endif %}>Finished Goods</option>
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="start_date">From Date</label>
+            <input type="date" name="start_date" id="start_date" value="{{ start_date }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="end_date">To Date</label>
+            <input type="date" name="end_date" id="end_date" value="{{ end_date }}" class="form-control form-control-sm">
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary-custom btn-sm w-100">Filter Ledger</button>
+            <a href="{{ url_for('inventory.ledger') }}" class="btn btn-outline-secondary btn-sm">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Ledger Table -->
+<div class="card card-custom">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">Movement Ledger Entries ({{ movements | length }})</h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Category</th>
+                    <th>Item Description</th>
+                    <th>Movement Type</th>
+                    <th class="text-center">Direction</th>
+                    <th class="text-end">Quantity</th>
+                    <th class="text-end">Running Bal</th>
+                    <th>Source Document</th>
+                    <th>Reference #</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in movements %}
+                <tr>
+                    <td>{{ m.movement_date | date_in }}</td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            {{ 'Raw Material' if m.item_type == 'raw_material' else ('Packaging' if m.item_type == 'packaging_material' else 'Finished Good') }}
+                        </span>
+                    </td>
+                    <td><strong>{{ m.get_item_name() }}</strong></td>
+                    <td><code>{{ m.movement_type }}</code></td>
+                    <td class="text-center">
+                        {% if m.direction == 'IN' %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">IN (+)</span>
+                        {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">OUT (-)</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold {{ 'text-success' if m.direction == 'IN' else 'text-danger' }}">
+                        {{ '+' if m.direction == 'IN' else '-' }}{{ m.quantity | qty(m.unit) }}
+                    </td>
+                    <td class="text-end fw-bold text-dark">{{ m.running_balance | qty(m.unit) }}</td>
+                    <td>{{ m.source_document_type }}</td>
+                    <td><code>{{ m.source_document_id or '-' }}</code></td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center text-muted py-5">
+                        <i data-lucide="book-open" style="width: 32px; height: 32px;" class="mb-2 text-secondary"></i>
+                        <div>No ledger transactions match the selected filter.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+
+{% block title %}Order {{ order.order_number }} - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h1 class="h4 fw-bold text-dark mb-0">Order {{ order.order_number }}</h1>
+            <span class="badge-status badge-{{ order.status | lower | replace(' ', '-') }}">
+                {{ order.status }}
+            </span>
+        </div>
+        <p class="text-muted small mb-0">Booked by {{ order.salesman.full_name }} on {{ order.order_date | date_in }}</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('orders.index') }}" class="btn btn-outline-secondary btn-sm">Back to Orders</a>
+        
+        <!-- Admin Approval Actions -->
+        {% if (current_user.has_role('owner') or current_user.has_role('admin')) and order.status in ['Submitted', 'Under Review'] %}
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#rejectModal">
+            Reject Order
+        </button>
+        <form method="POST" action="{{ url_for('orders.approve', id=order.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-success btn-sm fw-semibold">
+                Approve Order
+            </button>
+        </form>
+        {% endif %}
+
+        <!-- Invoice Generation Action -->
+        {% if (current_user.has_role('owner') or current_user.has_role('admin')) and order.status == 'Approved' %}
+        <form method="POST" action="{{ url_for('invoices.generate', order_id=order.id) }}" class="d-inline">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-primary-custom btn-sm fw-semibold d-flex align-items-center gap-1">
+                <i data-lucide="receipt" style="width: 16px; height: 16px;"></i> Generate GST Invoice
+            </button>
+        </form>
+        {% endif %}
+
+        <!-- Dispatch Action -->
+        {% if (current_user.has_role('owner') or current_user.has_role('admin')) and order.status in ['Invoiced', 'Partially Dispatched'] %}
+        <a href="{{ url_for('dispatch.new_dispatch', order_id=order.id) }}" class="btn btn-primary-custom btn-sm fw-semibold d-flex align-items-center gap-1">
+            <i data-lucide="truck" style="width: 16px; height: 16px;"></i> Dispatch Order
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stock Availability Alert for Approver -->
+{% if stock_check.has_shortage %}
+<div class="alert alert-danger border-danger mb-4 shadow-sm" role="alert">
+    <div class="d-flex align-items-center gap-2 mb-2">
+        <i data-lucide="alert-triangle" class="text-danger" style="width: 22px; height: 22px;"></i>
+        <strong class="h6 mb-0">Stock Shortage Detected for this Order!</strong>
+    </div>
+    <p class="small mb-2">Current finished goods inventory in the factory is insufficient to fulfill this order in full. Full dispatch is blocked until additional production is scheduled.</p>
+    <div class="table-responsive">
+        <table class="table table-sm table-bordered bg-white mb-0" style="font-size: 0.8rem;">
+            <thead class="table-light">
+                <tr>
+                    <th>Product</th>
+                    <th>Requested Qty</th>
+                    <th>Available Stock</th>
+                    <th class="text-danger">Shortage</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in stock_check.items %}
+                <tr>
+                    <td><strong>{{ item.product_name }}</strong></td>
+                    <td>{{ item.requested_qty | qty('pkts') }}</td>
+                    <td>{{ item.available_qty | qty('pkts') }}</td>
+                    <td>
+                        {% if item.shortage_qty > 0 %}
+                        <span class="badge bg-danger text-white fw-bold">{{ item.shortage_qty | qty('pkts') }}</span>
+                        {% else %}
+                        <span class="text-success">Available</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3">
+    <!-- Customer & Order Meta -->
+    <div class="col-md-4">
+        <div class="card card-custom p-3 h-100">
+            <h2 class="h6 fw-bold mb-3 text-dark border-bottom pb-2">Customer Information</h2>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Customer Name:</span>
+                <strong class="text-dark">{{ order.customer.name }}</strong>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Channel Type:</span>
+                <span class="badge bg-light text-dark border">{{ order.customer.customer_type }}</span>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Mobile:</span>
+                <span>{{ order.customer.mobile_number }}</span>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Delivery Address:</span>
+                <span class="small">{{ order.customer.address }}</span>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">State / Place of Supply:</span>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                    {{ order.customer.state }} ({{ 'Interstate IGST' if order.customer.is_interstate else 'Intrastate CGST+SGST' }})
+                </span>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">GSTIN:</span>
+                <code>{{ order.customer.gstin or 'URP (Unregistered Person)' }}</code>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items Table -->
+    <div class="col-md-8">
+        <div class="card card-custom h-100">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">Booked Products</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th class="text-center">Ordered Qty</th>
+                            <th class="text-center">Dispatched</th>
+                            <th class="text-end">Price (₹)</th>
+                            <th class="text-end">Taxable (₹)</th>
+                            <th class="text-end">GST</th>
+                            <th class="text-end">Total (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in order.items %}
+                        <tr>
+                            <td>
+                                <strong>{{ item.product.name }}</strong>
+                                <div class="text-muted" style="font-size: 0.72rem;">HSN: {{ item.product.hsn_code }}</div>
+                            </td>
+                            <td class="text-center fw-bold">{{ item.quantity | qty('pkts') }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border">{{ item.dispatched_quantity | qty('pkts') }}</span>
+                            </td>
+                            <td class="text-end">₹{{ item.unit_price }}</td>
+                            <td class="text-end">{{ item.taxable_amount | inr }}</td>
+                            <td class="text-end" style="font-size: 0.75rem;">
+                                {% if order.customer.is_interstate %}
+                                IGST: {{ item.igst_amount | inr }}
+                                {% else %}
+                                C: {{ item.cgst_amount | inr }}<br/>S: {{ item.sgst_amount | inr }}
+                                {% endif %}
+                            </td>
+                            <td class="text-end fw-bold">{{ item.total_amount | inr }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="4" class="text-end fw-semibold">Subtotal (Taxable Value):</td>
+                            <td class="text-end fw-semibold">{{ order.total_taxable_amount | inr }}</td>
+                            <td class="text-end fw-semibold">{{ order.total_tax_amount | inr }}</td>
+                            <td class="text-end fw-bold h6 text-primary mb-0">{{ order.total_amount | inr }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            {% if order.remarks %}
+            <div class="p-3 bg-light border-top" style="font-size: 0.85rem;">
+                <strong>Order Remarks:</strong> {{ order.remarks }}
+            </div>
+            {% endif %}
+
+            {% if order.rejection_reason %}
+            <div class="p-3 bg-danger-subtle border-top text-danger" style="font-size: 0.85rem;">
+                <strong>Rejection Reason:</strong> {{ order.rejection_reason }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('orders.reject', id=order.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Reject Order {{ order.order_number }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="reason">Mandatory Rejection Reason *</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" required placeholder="e.g. Credit limit exceeded, stock unproducible, customer cancelled..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Confirm Rejection</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

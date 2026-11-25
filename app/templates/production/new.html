@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Record Production Run - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h4 fw-bold text-dark mb-1">Production Batch Entry</h1>
+                <p class="text-muted small mb-0">Record actual production output, materials issued, damaged packaging and overhead costs.</p>
+            </div>
+            <a href="{{ url_for('production.index') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+        </div>
+
+        <form method="POST" action="{{ url_for('production.new_run') }}" id="productionForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Batch Setup Card -->
+            <div class="card card-custom p-4 mb-3">
+                <h2 class="h6 fw-bold mb-3 text-dark border-bottom pb-2">1. Batch Configuration</h2>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="product_id">Finished Product *</label>
+                        <select name="product_id" id="product_id" class="form-select" required onchange="onProductSelect()">
+                            <option value="" disabled selected>-- Select Product --</option>
+                            {% for b in boms %}
+                            <option value="{{ b.product.id }}" data-bom-id="{{ b.id }}" data-version-id="{{ b.active_version.id if b.active_version else '' }}">
+                                {{ b.product.name }} ({{ b.product.pack_size }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <input type="hidden" name="bom_version_id" id="bom_version_id">
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label" for="batch_count">Batches *</label>
+                        <input type="number" step="0.1" min="0.1" name="batch_count" id="batch_count" value="1.0" class="form-control text-center fw-bold" required oninput="recalcPlanned()">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label" for="production_date">Production Date *</label>
+                        <input type="date" name="production_date" id="production_date" value="{{ today_str }}" class="form-control" required>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Expected Yield</label>
+                        <div class="form-control bg-light text-primary fw-bold" id="expected_output_display">
+                            0 pkts
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Material Consumption Card -->
+            <div class="card card-custom p-4 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                    <h2 class="h6 fw-bold mb-0 text-dark">2. Materials Issued & Packaging Used</h2>
+                    <span class="text-muted small">Edit actual quantities if they deviate from recipe plan</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table-custom">
+                        <thead>
+                            <tr>
+                                <th>Item Name</th>
+                                <th>Category</th>
+                                <th>Planned Standard</th>
+                                <th style="width: 20%;">Actual Issued *</th>
+                                <th style="width: 18%;">Damaged / Wastage</th>
+                                <th>Unit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="consumption_tbody">
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    Please select a product above to automatically load recipe ingredients.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Output & Overheads Card -->
+            <div class="card card-custom p-4 mb-3">
+                <h2 class="h6 fw-bold mb-3 text-dark border-bottom pb-2">3. Actual Output & Production Overheads</h2>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label" for="actual_output">Good Packets Produced *</label>
+                        <input type="number" step="1" min="1" name="actual_output" id="actual_output" value="188" class="form-control form-control-lg fw-bold text-success" required>
+                        <span class="text-muted small">Finished packets added to FG stock</span>
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label" for="damaged_output">Damaged Packets</label>
+                        <input type="number" step="1" min="0" name="damaged_output" id="damaged_output" value="0" class="form-control form-control-lg">
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label" for="labour_cost">Labour Cost (₹)</label>
+                        <input type="number" step="0.01" min="0" name="labour_cost" id="labour_cost" value="1200.00" class="form-control">
+                        <span class="text-muted small">Direct batch labour</span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label" for="gas_cost">Gas & Power Cost (₹)</label>
+                        <input type="number" step="0.01" min="0" name="gas_cost" id="gas_cost" value="600.00" class="form-control">
+                        <span class="text-muted small">Fuel, gas and electricity</span>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label" for="remarks">Production Run Remarks</label>
+                        <input type="text" name="remarks" id="remarks" class="form-control" placeholder="Shift details, batch temperature, notes...">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-5">
+                <button type="submit" class="btn btn-primary-custom w-100 py-3 fw-bold shadow-sm d-flex justify-content-center align-items-center gap-2" style="font-size: 1.05rem;">
+                    <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+                    Post Production Run & Deduct Inventory
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+function onProductSelect() {
+    const select = document.getElementById('product_id');
+    const option = select.options[select.selectedIndex];
+    const versionId = option.getAttribute('data-version-id');
+    document.getElementById('bom_version_id').value = versionId;
+    loadBOMVersionItems(versionId, 'consumption_tbody');
+}
+
+function recalcPlanned() {
+    const select = document.getElementById('product_id');
+    if (select.selectedIndex > 0) {
+        onProductSelect();
+    }
+}
+</script>
+{% endblock %}

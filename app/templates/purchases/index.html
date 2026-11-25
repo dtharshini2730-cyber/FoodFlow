@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}Purchases Register - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Raw Material Purchases</h1>
+        <p class="text-muted small mb-0">Record incoming raw and packaging materials and automatically update moving weighted-average valuations.</p>
+    </div>
+    {% if current_user.has_role('owner') or current_user.has_role('admin') %}
+    <a href="{{ url_for('purchases.new_purchase') }}" class="btn btn-primary-custom d-flex align-items-center gap-2">
+        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Record Purchase
+    </a>
+    {% endif %}
+</div>
+
+<div class="card card-custom">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">Purchase Vouchers ({{ purchases | length }})</h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Purchase #</th>
+                    <th>Date</th>
+                    <th>Supplier</th>
+                    <th>Supplier Inv #</th>
+                    <th class="text-end">Taxable (₹)</th>
+                    <th class="text-end">Tax (₹)</th>
+                    <th class="text-end">Grand Total (₹)</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in purchases %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('purchases.view', id=p.id) }}" class="fw-semibold text-primary text-decoration-none">
+                            {{ p.purchase_number }}
+                        </a>
+                    </td>
+                    <td>{{ p.purchase_date | date_in }}</td>
+                    <td>
+                        <strong>{{ p.supplier.name }}</strong>
+                        <div class="text-muted" style="font-size: 0.75rem;">GSTIN: {{ p.supplier.gstin or 'URP' }}</div>
+                    </td>
+                    <td><code>{{ p.supplier_invoice_no }}</code></td>
+                    <td class="text-end">{{ p.total_taxable_amount | inr }}</td>
+                    <td class="text-end">{{ p.total_tax_amount | inr }}</td>
+                    <td class="text-end fw-bold text-dark">{{ p.grand_total | inr }}</td>
+                    <td class="text-center">
+                        <a href="{{ url_for('purchases.view', id=p.id) }}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                            View Details
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center text-muted py-5">
+                        <i data-lucide="shopping-bag" style="width: 32px; height: 32px;" class="mb-2 text-secondary"></i>
+                        <div>No purchase entries found. Record your raw material purchases.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

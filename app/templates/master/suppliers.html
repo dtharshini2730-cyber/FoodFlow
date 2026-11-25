@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Suppliers - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Suppliers Master</h1>
+        <p class="text-muted small mb-0">Vendors supplying flours, edible oils, spices and packaging materials.</p>
+    </div>
+    {% if current_user.has_role('owner') or current_user.has_role('admin') %}
+    <button type="button" class="btn btn-primary-custom d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#newSupplierModal">
+        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Add Supplier
+    </button>
+    {% endif %}
+</div>
+
+<div class="card card-custom">
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Supplier Name</th>
+                    <th>Contact Details</th>
+                    <th>GSTIN</th>
+                    <th>State</th>
+                    <th>Address</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in suppliers %}
+                <tr>
+                    <td><strong>{{ s.name }}</strong></td>
+                    <td>{{ s.contact_details or '-' }}</td>
+                    <td><code>{{ s.gstin or 'URP' }}</code></td>
+                    <td><span class="badge bg-light text-dark border">{{ s.state }}</span></td>
+                    <td class="small">{{ s.address }}</td>
+                    <td>
+                        <span class="badge-status badge-{{ 'approved' if s.is_active else 'rejected' }}">
+                            {{ 'Active' if s.is_active else 'Inactive' }}
+                        </span>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-4">No suppliers found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Supplier Modal -->
+{% if current_user.has_role('owner') or current_user.has_role('admin') %}
+<div class="modal fade" id="newSupplierModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('master.add_supplier') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold">Add New Supplier</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label" for="name">Supplier / Business Name *</label>
+                        <input type="text" name="name" id="name" class="form-control" required placeholder="e.g. Trichy Agro Millers">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label" for="contact_details">Phone / Email</label>
+                            <input type="text" name="contact_details" id="contact_details" class="form-control" placeholder="+91 98765 11111">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="gstin">GSTIN</label>
+                            <input type="text" name="gstin" id="gstin" class="form-control" placeholder="33AAAAA1234A1Z1">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label" for="state">State *</label>
+                            <select name="state" id="state" class="form-select" required>
+                                <option value="Tamil Nadu" selected>Tamil Nadu</option>
+                                <option value="Karnataka">Karnataka</option>
+                                <option value="Kerala">Kerala</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="address">Address *</label>
+                        <textarea name="address" id="address" rows="2" class="form-control" required placeholder="Market Yard, Thuvakudi, Tiruchirappalli"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary-custom btn-sm">Save Supplier</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

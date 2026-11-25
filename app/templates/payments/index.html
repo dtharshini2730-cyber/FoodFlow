@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+
+{% block title %}Payments & Collections - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Customer Payments & Receivables</h1>
+        <p class="text-muted small mb-0">Record bank, cash and UPI receipts and allocate them against unpaid GST invoices.</p>
+    </div>
+    {% if current_user.has_role('owner') or current_user.has_role('admin') %}
+    <a href="{{ url_for('payments.new_payment') }}" class="btn btn-primary-custom d-flex align-items-center gap-2">
+        <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Record Payment
+    </a>
+    {% endif %}
+</div>
+
+<!-- Outstanding Receivables Overview -->
+{% if outstanding_summary %}
+<div class="card card-custom mb-4">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom text-danger d-flex align-items-center gap-2">
+            <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i>
+            Open Receivables by Customer
+        </h2>
+        <a href="{{ url_for('reports.index', type='customer_ageing') }}" class="btn btn-outline-secondary btn-sm" style="font-size: 0.75rem;">
+            View Ageing Analysis
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Customer Name</th>
+                    <th>State</th>
+                    <th class="text-end">Total Outstanding (₹)</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in outstanding_summary %}
+                <tr>
+                    <td><strong>{{ c.name }}</strong></td>
+                    <td>{{ c.state }}</td>
+                    <td class="text-end fw-bold text-danger">{{ c.outstanding | inr }}</td>
+                    <td class="text-center">
+                        <a href="{{ url_for('payments.new_payment') }}?customer_id={{ c.customer_id }}" class="btn btn-sm btn-outline-primary py-1 px-2" style="font-size: 0.75rem;">
+                            Collect Payment
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Collections History -->
+<div class="card card-custom">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">Collections History ({{ payments | length }})</h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Payment #</th>
+                    <th>Date</th>
+                    <th>Customer</th>
+                    <th>Payment Mode</th>
+                    <th>Reference / UTR #</th>
+                    <th class="text-end">Amount (₹)</th>
+                    <th class="text-end">Allocated (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in payments %}
+                <tr>
+                    <td class="fw-semibold text-primary">{{ p.payment_number }}</td>
+                    <td>{{ p.payment_date | date_in }}</td>
+                    <td><strong>{{ p.customer.name }}</strong></td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ p.payment_mode }}</span>
+                    </td>
+                    <td><code>{{ p.reference_number or '-' }}</code></td>
+                    <td class="text-end fw-bold text-dark">{{ p.amount | inr }}</td>
+                    <td class="text-end text-success fw-semibold">{{ p.total_allocated | inr }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i data-lucide="credit-card" style="width: 32px; height: 32px;" class="mb-2 text-secondary"></i>
+                        <div>No payments recorded yet.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

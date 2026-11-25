@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}Tax Invoices - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">GST Tax Invoices</h1>
+        <p class="text-muted small mb-0">Sequential financial year invoices compliant with Indian GST rules (CGST/SGST and IGST).</p>
+    </div>
+    <a href="{{ url_for('reports.index', type='gst_outward') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+        <i data-lucide="shield-check" style="width: 16px; height: 16px;"></i> GST Reconciliation Summary
+    </a>
+</div>
+
+<div class="card card-custom">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">Invoice Register ({{ invoices | length }})</h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Date</th>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Place of Supply</th>
+                    <th class="text-end">Taxable (₹)</th>
+                    <th class="text-end">GST (₹)</th>
+                    <th class="text-end">Grand Total (₹)</th>
+                    <th class="text-end">Outstanding (₹)</th>
+                    <th class="text-center">PDF</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in invoices %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('invoices.view', id=inv.id) }}" class="fw-semibold text-primary text-decoration-none">
+                            {{ inv.invoice_number }}
+                        </a>
+                    </td>
+                    <td>{{ inv.invoice_date | date_in }}</td>
+                    <td>{{ inv.sales_order.order_number }}</td>
+                    <td>
+                        <strong>{{ inv.customer_name }}</strong>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border">
+                            {{ inv.place_of_supply }} ({{ 'IGST' if inv.is_interstate else 'CGST+SGST' }})
+                        </span>
+                    </td>
+                    <td class="text-end">{{ inv.total_taxable | inr }}</td>
+                    <td class="text-end">{{ (inv.cgst_total + inv.sgst_total + inv.igst_total) | inr }}</td>
+                    <td class="text-end fw-bold text-dark">{{ inv.grand_total | inr }}</td>
+                    <td class="text-end">
+                        {% if inv.is_fully_paid %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">PAID</span>
+                        {% else %}
+                        <span class="text-danger fw-bold">{{ inv.outstanding_amount | inr }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ url_for('invoices.download_pdf', id=inv.id) }}" class="btn btn-outline-danger btn-sm p-1" title="Download Official PDF">
+                            <i data-lucide="file-down" style="width: 16px; height: 16px;"></i>
+                        </a>
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ url_for('invoices.view', id=inv.id) }}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                            View
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="11" class="text-center text-muted py-5">
+                        <i data-lucide="receipt" style="width: 32px; height: 32px;" class="mb-2 text-secondary"></i>
+                        <div>No tax invoices posted yet. Generate an invoice from an approved sales order.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

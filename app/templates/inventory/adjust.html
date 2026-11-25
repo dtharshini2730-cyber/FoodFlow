@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+
+{% block title %}Stock Adjustment - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h1 class="h4 fw-bold text-dark mb-1">Manual Stock Adjustment</h1>
+                <p class="text-muted small mb-0">Record physical stock count corrections with an audit trail.</p>
+            </div>
+            <a href="{{ url_for('inventory.index') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+        </div>
+
+        <form method="POST" action="{{ url_for('inventory.adjust') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="card card-custom p-4 mb-4">
+                <div class="mb-3">
+                    <label class="form-label" for="item_type">Item Category *</label>
+                    <select name="item_type" id="item_type" class="form-select" required onchange="onCategoryChange()">
+                        <option value="raw_material" selected>Raw Material</option>
+                        <option value="packaging_material">Packaging Material</option>
+                        <option value="finished_good">Finished Goods (Snacks)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="item_id">Select Item *</label>
+                    <select name="item_id" id="item_id" class="form-select" required>
+                        {% for rm in raw_materials %}
+                        <option value="{{ rm.id }}" data-cat="raw_material">{{ rm.name }} ({{ rm.sku }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label" for="direction">Direction *</label>
+                        <select name="direction" id="direction" class="form-select" required>
+                            <option value="IN">Stock Increase (IN +)</option>
+                            <option value="OUT">Stock Decrease (OUT -)</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label" for="quantity">Adjustment Quantity *</label>
+                        <input type="number" step="0.001" min="0.001" name="quantity" id="quantity" class="form-control fw-bold" placeholder="0.000" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="reason">Mandatory Reason *</label>
+                    <textarea name="reason" id="reason" rows="3" class="form-control" placeholder="e.g. Physical inventory count discrepancy, humidity shrinkage, damaged packaging..." required></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary-custom w-100 py-2 fw-semibold">
+                    Post Stock Adjustment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const rmList = [
+    {% for rm in raw_materials %}
+    { id: {{ rm.id }}, name: "{{ rm.name }} ({{ rm.sku }})" },
+    {% endfor %}
+];
+const pmList = [
+    {% for pm in packaging %}
+    { id: {{ pm.id }}, name: "{{ pm.name }} ({{ pm.sku }})" },
+    {% endfor %}
+];
+const fgList = [
+    {% for fg in products %}
+    { id: {{ fg.id }}, name: "{{ fg.name }} ({{ fg.sku }})" },
+    {% endfor %}
+];
+
+function onCategoryChange() {
+    const cat = document.getElementById('item_type').value;
+    const select = document.getElementById('item_id');
+    select.innerHTML = '';
+    
+    let list = rmList;
+    if (cat === 'packaging_material') list = pmList;
+    else if (cat === 'finished_good') list = fgList;
+    
+    list.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.id;
+        opt.innerText = item.name;
+        select.appendChild(opt);
+    });
+}
+</script>
+{% endblock %}

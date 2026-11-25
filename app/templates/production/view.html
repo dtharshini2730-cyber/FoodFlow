@@ -1,0 +1,200 @@
+{% extends 'base.html' %}
+
+{% block title %}Production Run {{ run.run_number }} - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h1 class="h4 fw-bold text-dark mb-0">Production Run {{ run.run_number }}</h1>
+            <span class="badge-status badge-{{ 'approved' if run.status == 'completed' else 'rejected' }}">
+                {{ run.status | upper }}
+            </span>
+        </div>
+        <p class="text-muted small mb-0">Manufacturing date: {{ run.production_date | date_in }} | Product: <strong>{{ run.product.name }}</strong></p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('production.index') }}" class="btn btn-outline-secondary btn-sm">Back to History</a>
+        {% if run.status == 'completed' and (current_user.has_role('owner') or current_user.has_role('admin')) %}
+        <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reverseModal">
+            Reverse Production Run
+        </button>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Yield Variance Alert Banner -->
+{% if run.yield_variance_alert %}
+<div class="alert alert-danger border-danger d-flex align-items-center gap-3 mb-4 shadow-sm" role="alert">
+    <i data-lucide="alert-octagon" class="text-danger flex-shrink-0" style="width: 28px; height: 28px;"></i>
+    <div>
+        <strong class="d-block h6 mb-1">Production Yield Variance Alert Triggered!</strong>
+        <span>
+            Actual output was <strong>{{ run.actual_output | qty('pkts') }}</strong> vs Expected <strong>{{ run.expected_output | qty('pkts') }}</strong>
+            (Deviation: <strong class="text-danger">{{ run.yield_variance_pct }}%</strong>, exceeding tolerance of 3%).
+        </span>
+    </div>
+</div>
+{% endif %}
+
+<!-- Key Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Actual Good Output</div>
+            <div class="stat-value text-success">{{ run.actual_output | qty('pkts') }}</div>
+            <div class="stat-meta text-muted">Expected: {{ run.expected_output | qty('pkts') }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Total Batch Cost</div>
+            <div class="stat-value">{{ run.total_production_cost | inr }}</div>
+            <div class="stat-meta text-muted">Materials + Overheads</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Cost Per Good Packet</div>
+            <div class="stat-value text-primary">{{ run.cost_per_packet | inr }}</div>
+            <div class="stat-meta text-muted">Selling Price: {{ run.product.selling_price | inr }}</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Gross Margin</div>
+            <div class="stat-value text-dark">{{ run.gross_margin_percentage | round(1) }}%</div>
+            <div class="stat-meta text-success fw-semibold">Contribution: {{ run.gross_contribution_per_packet | inr }}/pkt</div>
+        </div>
+    </div>
+</div>
+
+<!-- Consumptions Table -->
+<div class="card card-custom mb-4">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">Materials & Packaging Consumed</h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Item Description</th>
+                    <th>Category</th>
+                    <th class="text-end">Planned Qty</th>
+                    <th class="text-end">Actual Issued</th>
+                    <th class="text-end">Damaged / Wastage</th>
+                    <th>Unit</th>
+                    <th class="text-center">Variance %</th>
+                    <th class="text-end">Valuation Rate</th>
+                    <th class="text-end">Total Cost (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in run.consumptions %}
+                <tr>
+                    <td><strong>{{ c.get_item_name() }}</strong></td>
+                    <td>
+                        <span class="badge bg-light text-dark border">{{ 'Raw Material' if c.item_type == 'raw_material' else 'Packaging' }}</span>
+                    </td>
+                    <td class="text-end">{{ c.planned_quantity | qty }}</td>
+                    <td class="text-end fw-semibold">{{ c.actual_quantity | qty }}</td>
+                    <td class="text-end text-danger">{{ c.damaged_quantity | qty if c.damaged_quantity > 0 else '-' }}</td>
+                    <td>{{ c.unit }}</td>
+                    <td class="text-center">
+                        {% if c.variance_alert %}
+                        <span class="badge bg-danger text-white fw-bold">{{ c.variance_pct }}% (ALERT)</span>
+                        {% else %}
+                        <span class="text-muted">{{ c.variance_pct }}%</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">{{ c.unit_cost | inr }}</td>
+                    <td class="text-end fw-bold">{{ c.total_cost | inr }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Cost Breakdown Card -->
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="card card-custom p-3 h-100">
+            <h2 class="h6 fw-bold mb-3 text-dark border-bottom pb-2">Production Cost Summary</h2>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Raw Materials Cost:</span>
+                <strong>{{ run.total_material_cost | inr }}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Packaging Materials Cost:</span>
+                <strong>{{ run.total_packaging_cost | inr }}</strong>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Direct Labour Cost:</span>
+                <span>{{ run.labour_cost | inr }}</span>
+            </div>
+            <div class="d-flex justify-content-between mb-2">
+                <span>Gas, Power & Overheads:</span>
+                <span>{{ (run.gas_cost + run.power_cost + run.other_overhead_cost) | inr }}</span>
+            </div>
+            <hr class="my-2">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="fw-bold">Total Batch Production Cost:</span>
+                <span class="h5 fw-bold text-dark mb-0">{{ run.total_production_cost | inr }}</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="fw-bold text-primary">Unit Cost Per Good Packet:</span>
+                <span class="h5 fw-bold text-primary mb-0">{{ run.cost_per_packet | inr }}</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card card-custom p-3 h-100">
+            <h2 class="h6 fw-bold mb-3 text-dark border-bottom pb-2">Audit & Run Details</h2>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Created By:</span>
+                <strong>{{ run.created_by.full_name }}</strong> ({{ run.created_at | date_in }})
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Recipe Version:</span>
+                <span>Version #{{ run.bom_version.version_number }} (Expected Yield: {{ run.bom_version.expected_output | qty('pkts') }}/batch)</span>
+            </div>
+            {% if run.remarks %}
+            <div class="mb-2">
+                <span class="text-muted small d-block">Remarks:</span>
+                <div class="bg-light p-2 rounded small">{{ run.remarks }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Reverse Modal -->
+<div class="modal fade" id="reverseModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="POST" action="{{ url_for('production.reverse', id=run.id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title fw-bold text-danger">Reverse Production Run {{ run.run_number }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-danger fw-semibold">
+                        Reversing this production run will restore consumed raw materials and packaging materials back to inventory, and deduct the {{ run.actual_output }} good finished packets from stock.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label" for="reason">Mandatory Reversal Reason *</label>
+                        <textarea class="form-control" id="reason" name="reason" rows="3" required placeholder="e.g. Data entry error, contaminated batch..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Confirm Reversal</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

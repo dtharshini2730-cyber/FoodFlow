@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}New Order - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <h1 class="h4 fw-bold text-dark mb-0">Create Sales Order</h1>
+                <p class="text-muted small mb-0">Quick order booking for field salesmen and admins.</p>
+            </div>
+            <a href="{{ url_for('orders.index') }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+        </div>
+
+        <form method="POST" action="{{ url_for('orders.new_order') }}" id="orderForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="idempotency_key" id="idempotency_key">
+
+            <!-- Customer Selection Card -->
+            <div class="card card-custom p-3 mb-3">
+                <label class="form-label" for="customer_id">Select Customer *</label>
+                <select name="customer_id" id="customer_id" class="form-select form-select-lg" required onchange="updateTaxType()">
+                    <option value="" disabled selected>-- Choose Customer --</option>
+                    {% for c in customers %}
+                    <option value="{{ c.id }}" data-state="{{ c.state }}" data-type="{{ c.customer_type }}">
+                        {{ c.name }} - {{ c.state }} ({{ c.customer_type }})
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="d-flex justify-content-between mt-2" style="font-size: 0.8rem;">
+                    <span id="tax_type_badge" class="badge bg-light text-dark border">Place of Supply: Select customer</span>
+                    <span class="text-muted">GST rate: 5% (CGST 2.5% + SGST 2.5% or IGST 5%)</span>
+                </div>
+            </div>
+
+            <!-- Product Items Card -->
+            <div class="card card-custom p-3 mb-3">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h2 class="h6 fw-bold mb-0 text-dark">Order Items</h2>
+                    <span class="text-muted small">Available finished stock is informational</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-borderless align-middle mb-0">
+                        <thead class="border-bottom text-muted" style="font-size: 0.75rem;">
+                            <tr>
+                                <th style="width: 45%;">Product</th>
+                                <th style="width: 25%;">Selling Price (₹)</th>
+                                <th style="width: 30%;">Quantity (Pkts)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in products %}
+                            <tr class="border-bottom">
+                                <td>
+                                    <div class="fw-semibold text-dark">{{ p.name }}</div>
+                                    <div class="text-muted" style="font-size: 0.75rem;">
+                                        Stock in Factory: <strong class="text-primary">{{ product_stock.get(p.id, 0) | qty('pkts') }}</strong>
+                                    </div>
+                                    <input type="hidden" name="product_id[]" value="{{ p.id }}">
+                                </td>
+                                <td>
+                                    <span class="fw-medium">₹{{ p.selling_price }}</span>
+                                    <span class="text-muted small">/ pkt</span>
+                                </td>
+                                <td>
+                                    <div class="input-group">
+                                        <input type="number" name="quantity[]" min="0" step="1" value="0"
+                                               class="form-control form-control-lg text-center fw-bold qty-input"
+                                               data-price="{{ p.selling_price }}"
+                                               data-gst="{{ p.gst_rate }}"
+                                               oninput="calculateTotal()">
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Order Value Summary Card -->
+            <div class="card card-custom p-3 mb-3 bg-light border-primary-subtle">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small">Subtotal (Before Tax):</span>
+                    <strong class="text-dark" id="disp_subtotal">₹0.00</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small">Estimated GST (5%):</span>
+                    <span class="text-dark" id="disp_tax">₹0.00</span>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">Total Estimated Order Value:</span>
+                    <span class="h4 fw-bold text-primary mb-0" id="disp_total">₹0.00</span>
+                </div>
+            </div>
+
+            <!-- Remarks & Submit -->
+            <div class="card card-custom p-3 mb-4">
+                <div class="mb-3">
+                    <label class="form-label" for="remarks">Order Remarks (Optional)</label>
+                    <input type="text" class="form-control" id="remarks" name="remarks" placeholder="Delivery notes, requested dispatch date...">
+                </div>
+
+                <button type="submit" class="btn btn-primary-custom w-100 py-3 fw-bold shadow-sm d-flex justify-content-center align-items-center gap-2" style="font-size: 1rem;">
+                    <i data-lucide="check-circle" style="width: 20px; height: 20px;"></i>
+                    Submit Sales Order
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Generate client-side idempotency key on load
+document.addEventListener('DOMContentLoaded', function () {
+    const key = 'ord_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    document.getElementById('idempotency_key').value = key;
+});
+
+function updateTaxType() {
+    const select = document.getElementById('customer_id');
+    const option = select.options[select.selectedIndex];
+    const state = option.getAttribute('data-state');
+    const badge = document.getElementById('tax_type_badge');
+    
+    if (state && state.trim().toLowerCase() === 'tamil nadu') {
+        badge.innerText = 'Intrastate: CGST (2.5%) + SGST (2.5%)';
+        badge.className = 'badge bg-success-subtle text-success border border-success-subtle';
+    } else if (state) {
+        badge.innerText = 'Interstate (' + state + '): IGST (5.0%)';
+        badge.className = 'badge bg-info-subtle text-info border border-info-subtle';
+    }
+    calculateTotal();
+}
+
+function calculateTotal() {
+    let subtotal = 0;
+    const qtyInputs = document.querySelectorAll('.qty-input');
+    
+    qtyInputs.forEach(input => {
+        const qty = parseFloat(input.value) || 0;
+        const price = parseFloat(input.getAttribute('data-price')) || 0;
+        subtotal += qty * price;
+    });
+    
+    const tax = subtotal * 0.05;
+    const total = subtotal + tax;
+    
+    document.getElementById('disp_subtotal').innerText = '₹' + subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('disp_tax').innerText = '₹' + tax.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    document.getElementById('disp_total').innerText = '₹' + total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+</script>
+{% endblock %}

@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory Balances - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Inventory & Stock Summary</h1>
+        <p class="text-muted small mb-0">Live stock balances calculated from posted ledger entries. Prevents negative stock.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('inventory.ledger') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+            <i data-lucide="book-open" style="width: 16px; height: 16px;"></i> Central Stock Ledger
+        </a>
+        {% if current_user.has_role('owner') or current_user.has_role('admin') %}
+        <a href="{{ url_for('inventory.adjust') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+            <i data-lucide="sliders" style="width: 16px; height: 16px;"></i> Stock Adjustment
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Finished Goods Stock -->
+<div class="card card-custom mb-4">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom d-flex align-items-center gap-2">
+            <i data-lucide="package-check" style="width: 18px; height: 18px;" class="text-success"></i>
+            Finished Goods (Packaged Snacks)
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>SKU</th>
+                    <th class="text-end">Current Stock</th>
+                    <th>Unit</th>
+                    <th class="text-end">Selling Price (₹)</th>
+                    <th class="text-end">Inventory Valuation (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in finished_goods %}
+                <tr>
+                    <td><strong>{{ p.name }}</strong></td>
+                    <td><code>{{ p.sku }}</code></td>
+                    <td class="text-end fw-bold text-primary h6 mb-0">{{ p.current_stock | qty }}</td>
+                    <td>{{ p.unit }}</td>
+                    <td class="text-end">{{ p.selling_price | inr }}</td>
+                    <td class="text-end fw-bold text-dark">{{ p.total_valuation | inr }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="text-center text-muted py-3">No finished goods found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Raw Materials Stock -->
+<div class="card card-custom mb-4">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom d-flex align-items-center gap-2">
+            <i data-lucide="layers" style="width: 18px; height: 18px;" class="text-primary"></i>
+            Raw Materials Stock
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Material Name</th>
+                    <th>SKU</th>
+                    <th class="text-end">Current Stock</th>
+                    <th>Unit</th>
+                    <th class="text-end">Reorder Level</th>
+                    <th>Stock Health</th>
+                    <th class="text-end">Moving Avg Rate (₹)</th>
+                    <th class="text-end">Valuation (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rm in raw_materials %}
+                <tr>
+                    <td><strong>{{ rm.name }}</strong></td>
+                    <td><code>{{ rm.sku }}</code></td>
+                    <td class="text-end fw-bold {{ 'text-danger' if rm.is_low_stock else 'text-dark' }}">
+                        {{ rm.current_stock | qty }}
+                    </td>
+                    <td>{{ rm.unit }}</td>
+                    <td class="text-end text-muted">{{ rm.reorder_level | qty }}</td>
+                    <td>
+                        {% if rm.is_low_stock %}
+                        <span class="badge bg-danger text-white">REORDER NEEDED</span>
+                        {% else %}
+                        <span class="badge bg-success-subtle text-success">OPTIMAL</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">₹{{ rm.current_rate | round(4) }}</td>
+                    <td class="text-end fw-bold">{{ rm.total_valuation | inr }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="text-center text-muted py-3">No raw materials found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Packaging Materials Stock -->
+<div class="card card-custom mb-4">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom d-flex align-items-center gap-2">
+            <i data-lucide="box" style="width: 18px; height: 18px;" class="text-info"></i>
+            Packaging Materials Stock
+        </h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Packaging Item</th>
+                    <th>SKU</th>
+                    <th class="text-end">Current Stock</th>
+                    <th>Unit</th>
+                    <th class="text-end">Reorder Level</th>
+                    <th>Stock Health</th>
+                    <th class="text-end">Valuation (₹)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pm in packaging %}
+                <tr>
+                    <td><strong>{{ pm.name }}</strong></td>
+                    <td><code>{{ pm.sku }}</code></td>
+                    <td class="text-end fw-bold {{ 'text-danger' if pm.is_low_stock else 'text-dark' }}">
+                        {{ pm.current_stock | qty }}
+                    </td>
+                    <td>{{ pm.unit }}</td>
+                    <td class="text-end text-muted">{{ pm.reorder_level | qty }}</td>
+                    <td>
+                        {% if pm.is_low_stock %}
+                        <span class="badge bg-danger text-white">REORDER NEEDED</span>
+                        {% else %}
+                        <span class="badge bg-success-subtle text-success">OPTIMAL</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end fw-bold">{{ pm.total_valuation | inr }}</td>
+                </tr>
+                {% else %}
+                <tr><td colspan="7" class="text-center text-muted py-3">No packaging materials found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

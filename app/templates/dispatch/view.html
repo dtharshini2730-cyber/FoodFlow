@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+
+{% block title %}Dispatch {{ dispatch.dispatch_number }} - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h1 class="h4 fw-bold text-dark mb-0">Dispatch Slip {{ dispatch.dispatch_number }}</h1>
+            <span class="badge bg-success-subtle text-success border border-success-subtle">SHIPPED</span>
+        </div>
+        <p class="text-muted small mb-0">Date: {{ dispatch.dispatch_date | date_in }} | Vehicle: <code>{{ dispatch.vehicle_no or 'Factory Pickup' }}</code></p>
+    </div>
+    <a href="{{ url_for('dispatch.index') }}" class="btn btn-outline-secondary btn-sm">Back to Dispatches</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="card card-custom p-3 h-100">
+            <h2 class="h6 fw-bold mb-3 text-dark border-bottom pb-2">Shipment Reference</h2>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Sales Order:</span>
+                <a href="{{ url_for('orders.view', id=dispatch.sales_order.id) }}" class="fw-semibold text-primary text-decoration-none">
+                    {{ dispatch.sales_order.order_number }}
+                </a>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Recipient Customer:</span>
+                <strong>{{ dispatch.sales_order.customer.name }}</strong>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Destination State:</span>
+                <span>{{ dispatch.sales_order.customer.state }}</span>
+            </div>
+            <div class="mb-2">
+                <span class="text-muted small d-block">Vehicle / Carrier:</span>
+                <code>{{ dispatch.vehicle_no or '-' }}</code>
+            </div>
+            {% if dispatch.remarks %}
+            <div class="mb-2">
+                <span class="text-muted small d-block">Remarks:</span>
+                <span class="small">{{ dispatch.remarks }}</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="col-md-8">
+        <div class="card card-custom h-100">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom">Shipped Items</h2>
+            </div>
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Product Description</th>
+                            <th>Pack Size</th>
+                            <th class="text-end">Dispatched Quantity</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in dispatch.items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td><strong>{{ item.product.name }}</strong></td>
+                            <td>{{ item.product.pack_size }}</td>
+                            <td class="text-end fw-bold text-dark">{{ item.quantity | qty('pkts') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

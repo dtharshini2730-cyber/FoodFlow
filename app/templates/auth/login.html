@@ -1,0 +1,66 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign In - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="col-md-5 col-lg-4">
+        <div class="text-center mb-4">
+            <div class="brand-badge d-inline-block px-3 py-2 mb-2" style="font-size: 1.5rem;">FoodFlow</div>
+            <h2 class="h5 fw-bold text-dark">Food Manufacturing ERP</h2>
+            <p class="text-muted small">Order-to-Audit Management for Food Processors</p>
+        </div>
+
+        <div class="card card-custom p-4 shadow-sm">
+            <h3 class="h6 fw-bold mb-3 text-dark">Sign in to your account</h3>
+            
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                
+                <div class="mb-3">
+                    <label class="form-label" for="email">Work Email</label>
+                    <input type="email" class="form-control" id="email" name="email" placeholder="name@foodflow.local" required autofocus>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label" for="password">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" placeholder="••••••••" required>
+                </div>
+                
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="remember" name="remember">
+                    <label class="form-check-label text-muted small" for="remember">
+                        Remember this session
+                    </label>
+                </div>
+                
+                <button type="submit" class="btn btn-primary-custom w-100 py-2">
+                    Sign In
+                </button>
+            </form>
+        </div>
+
+        <!-- Development Demo Credentials Helper -->
+        <div class="card card-custom p-3 mt-3 bg-light border-dashed">
+            <div class="fw-bold small mb-2 text-secondary d-flex align-items-center justify-content-between">
+                <span>Test Role Accounts (Password: <code>Admin@123</code>)</span>
+            </div>
+            <div class="d-flex flex-wrap gap-1">
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="fillLogin('owner@foodflow.local')">Owner</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="fillLogin('admin@foodflow.local')">Admin</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="fillLogin('salesman.a@foodflow.local')">Salesman A</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="fillLogin('salesman.b@foodflow.local')">Salesman B</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="fillLogin('production@foodflow.local')">Production</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;" onclick="fillLogin('auditor@foodflow.local')">Auditor</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function fillLogin(email) {
+    document.getElementById('email').value = email;
+    document.getElementById('password').value = 'Admin@123';
+}
+</script>
+{% endblock %}

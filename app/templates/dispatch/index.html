@@ -1,0 +1,69 @@
+{% extends 'base.html' %}
+
+{% block title %}Dispatches - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Goods Dispatch Register</h1>
+        <p class="text-muted small mb-0">Record factory shipments, reduce finished goods stock, and update order statuses.</p>
+    </div>
+</div>
+
+<div class="card card-custom">
+    <div class="card-header-custom">
+        <h2 class="card-title-custom">Dispatch Slips ({{ dispatches | length }})</h2>
+    </div>
+    <div class="table-responsive">
+        <table class="table-custom">
+            <thead>
+                <tr>
+                    <th>Dispatch #</th>
+                    <th>Date</th>
+                    <th>Sales Order #</th>
+                    <th>Customer</th>
+                    <th>Vehicle No</th>
+                    <th>Items Dispatched</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in dispatches %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('dispatch.view', id=d.id) }}" class="fw-semibold text-primary text-decoration-none">
+                            {{ d.dispatch_number }}
+                        </a>
+                    </td>
+                    <td>{{ d.dispatch_date | date_in }}</td>
+                    <td>
+                        <a href="{{ url_for('orders.view', id=d.sales_order.id) }}" class="text-dark text-decoration-none fw-medium">
+                            {{ d.sales_order.order_number }}
+                        </a>
+                    </td>
+                    <td>{{ d.sales_order.customer.name }}</td>
+                    <td><code>{{ d.vehicle_no or '-' }}</code></td>
+                    <td>
+                        {% for item in d.items %}
+                        <span class="badge bg-light text-dark border">{{ item.product.name }}: {{ item.quantity | qty('pkts') }}</span>
+                        {% endfor %}
+                    </td>
+                    <td class="text-center">
+                        <a href="{{ url_for('dispatch.view', id=d.id) }}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.75rem;">
+                            View Details
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-5">
+                        <i data-lucide="truck" style="width: 32px; height: 32px;" class="mb-2 text-secondary"></i>
+                        <div>No dispatches recorded yet. Open an approved or invoiced order to dispatch items.</div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

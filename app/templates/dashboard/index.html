@@ -1,0 +1,302 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Business Performance Dashboard</h1>
+        <p class="text-muted small mb-0">Real-time overview of manufacturing, order fulfillment, stock and accounting.</p>
+    </div>
+    <div class="d-flex gap-2">
+        {% if current_user.has_role('salesman') %}
+        <a href="{{ url_for('orders.new_order') }}" class="btn btn-primary-custom d-flex align-items-center gap-2">
+            <i data-lucide="plus" style="width: 16px; height: 16px;"></i> Place New Order
+        </a>
+        {% endif %}
+        {% if current_user.has_role('production') or current_user.has_role('owner') or current_user.has_role('admin') %}
+        <a href="{{ url_for('production.new_run') }}" class="btn btn-primary-custom d-flex align-items-center gap-2">
+            <i data-lucide="play" style="width: 16px; height: 16px;"></i> Start Production Run
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Stock Alerts Banner -->
+{% if low_stock_materials %}
+<div class="alert alert-warning border-warning d-flex align-items-center gap-3 mb-4 shadow-sm" role="alert">
+    <i data-lucide="alert-triangle" class="text-warning flex-shrink-0" style="width: 24px; height: 24px;"></i>
+    <div class="flex-grow-1">
+        <strong class="d-block">Material Reorder Alert Triggered</strong>
+        <span class="small">The following materials are below minimum threshold:</span>
+        <div class="d-flex flex-wrap gap-2 mt-1">
+            {% for item in low_stock_materials %}
+            <span class="badge bg-white text-dark border border-warning">
+                {{ item.name }}: <strong>{{ item.current | qty(item.unit) }}</strong> (Min: {{ item.reorder | qty(item.unit) }})
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+    {% if current_user.has_role('admin') or current_user.has_role('owner') %}
+    <a href="{{ url_for('purchases.new_purchase') }}" class="btn btn-warning btn-sm fw-semibold">Raise Purchase</a>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- Variance Alerts Banner -->
+{% if variance_runs %}
+<div class="alert alert-danger border-danger d-flex align-items-center gap-3 mb-4 shadow-sm" role="alert">
+    <i data-lucide="alert-octagon" class="text-danger flex-shrink-0" style="width: 24px; height: 24px;"></i>
+    <div class="flex-grow-1">
+        <strong class="d-block">Production Variance Alert (>3% Deviation)</strong>
+        <span class="small">Recent production runs flagged with abnormal yield or material consumption:</span>
+        <div class="d-flex flex-wrap gap-2 mt-1">
+            {% for r in variance_runs %}
+            <a href="{{ url_for('production.view', id=r.id) }}" class="badge bg-white text-danger border border-danger text-decoration-none">
+                {{ r.run_number }}: {{ r.yield_variance_pct }}% yield variance
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- KPI Cards Grid -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Today's Orders</div>
+            <div class="stat-value">{{ todays_orders_count }}</div>
+            <div class="stat-meta text-warning fw-semibold">
+                {{ awaiting_approval_count }} awaiting approval
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Today's Invoiced Sales</div>
+            <div class="stat-value">{{ todays_sales | inr }}</div>
+            <div class="stat-meta text-muted">Posted tax invoices</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Available Finished Goods</div>
+            <div class="stat-value text-primary">{{ total_finished_pkts | qty('pkts') }}</div>
+            <div class="stat-meta text-muted">Ready for dispatch</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="stat-card">
+            <div class="stat-label">Customer Outstanding</div>
+            <div class="stat-value text-danger">{{ total_outstanding | inr }}</div>
+            <div class="stat-meta text-muted">Total unpaid receivables</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="card card-custom h-100">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom d-flex align-items-center gap-2">
+                    <i data-lucide="bar-chart-2" style="width: 18px; height: 18px;" class="text-primary"></i>
+                    Monthly Sales Trend (Tax Invoices)
+                </h2>
+                <span class="badge bg-light text-muted border">₹ Invoiced Total</span>
+            </div>
+            <div class="p-3">
+                <canvas id="monthlySalesChart" height="120"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card card-custom h-100">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom d-flex align-items-center gap-2">
+                    <i data-lucide="pie-chart" style="width: 18px; height: 18px;" class="text-primary"></i>
+                    Product Sales Distribution
+                </h2>
+            </div>
+            <div class="p-3">
+                <canvas id="productSalesChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions Tables -->
+<div class="row g-3">
+    <!-- Recent Orders -->
+    <div class="col-lg-6">
+        <div class="card card-custom h-100">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom d-flex align-items-center gap-2">
+                    <i data-lucide="shopping-cart" style="width: 18px; height: 18px;" class="text-primary"></i>
+                    Recent Orders
+                </h2>
+                <a href="{{ url_for('orders.index') }}" class="btn btn-outline-secondary btn-sm" style="font-size: 0.75rem;">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in recent_orders %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('orders.view', id=order.id) }}" class="fw-semibold text-primary text-decoration-none">
+                                    {{ order.order_number }}
+                                </a>
+                            </td>
+                            <td>{{ order.customer.name }}</td>
+                            <td>{{ order.order_date | date_in }}</td>
+                            <td class="fw-semibold">{{ order.total_amount | inr }}</td>
+                            <td>
+                                <span class="badge-status badge-{{ order.status | lower | replace(' ', '-') }}">
+                                    {{ order.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No recent sales orders recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Production Runs -->
+    <div class="col-lg-6">
+        <div class="card card-custom h-100">
+            <div class="card-header-custom">
+                <h2 class="card-title-custom d-flex align-items-center gap-2">
+                    <i data-lucide="factory" style="width: 18px; height: 18px;" class="text-primary"></i>
+                    Recent Production Batches
+                </h2>
+                <a href="{{ url_for('production.index') }}" class="btn btn-outline-secondary btn-sm" style="font-size: 0.75rem;">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table-custom">
+                    <thead>
+                        <tr>
+                            <th>Run #</th>
+                            <th>Product</th>
+                            <th>Output</th>
+                            <th>Yield Var %</th>
+                            <th>Cost/Pkt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for run in recent_runs %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('production.view', id=run.id) }}" class="fw-semibold text-primary text-decoration-none">
+                                    {{ run.run_number }}
+                                </a>
+                            </td>
+                            <td>{{ run.product.name }}</td>
+                            <td><strong>{{ run.actual_output | qty('pkts') }}</strong></td>
+                            <td>
+                                {% if run.yield_variance_alert %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">
+                                    {{ run.yield_variance_pct }}%
+                                </span>
+                                {% else %}
+                                <span class="text-success fw-semibold">{{ run.yield_variance_pct }}%</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-semibold">{{ run.cost_per_packet | inr }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No recent production runs found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Monthly Sales Chart
+    const salesCtx = document.getElementById('monthlySalesChart');
+    if (salesCtx) {
+        new Chart(salesCtx, {
+            type: 'line',
+            data: {
+                labels: {{ monthly_sales_labels | tojson }},
+                datasets: [{
+                    label: 'Invoiced Sales (₹)',
+                    data: {{ monthly_sales_values | tojson }},
+                    borderColor: '#2563EB',
+                    backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.25,
+                    pointBackgroundColor: '#2563EB',
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(val) { return '₹' + val.toLocaleString('en-IN'); }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Product Sales Distribution
+    const prodCtx = document.getElementById('productSalesChart');
+    if (prodCtx) {
+        new Chart(prodCtx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ product_chart_labels | tojson }},
+                datasets: [{
+                    data: {{ product_chart_values | tojson }},
+                    backgroundColor: ['#2563EB', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
