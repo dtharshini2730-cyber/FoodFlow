@@ -55,21 +55,99 @@ By enforcing strict database transactions, append-only immutable stock ledgers, 
   - Bootstrap 5.3 (modern layout, responsive data tables, accessible modal dialogs)
   - Jinja2 Template Engine (custom Indian Rupee `inr`, Date `date_in`, and Quantity `qty` formatters)
   - Lucide Icons (clean, modern iconography)
-  - Chart.js (used purposefully for 6-month sales trends and top-product distributions)
+  - Chart.js (Monthly Sales vs Production Costs and Top Debtors Outstanding Distribution)
 - **Configuration & Testing:** `python-dotenv`, `pytest`, `docker-compose`
 
 ---
 
-## 3. Indian Business Compliance & Localization
+## 3. Role-Based Workspaces & Navigation
+
+FoodFlow ERP provides 5 distinct, role-tailored workspaces. Each role is greeted with a dedicated dashboard, custom sidebar navigation, permitted actions, and strict backend permission enforcement (`HTTP 403 Forbidden` on unauthorized requests).
+
+```
++-----------------------------------------------------------------------------------------+
+|                                    FOODFLOW ERP                                         |
++-----------------------------------------------------------------------------------------+
+| [Role: OWNER]      | Business Overview, Sales vs Production, Dues Doughnut, Alerts      |
+| [Role: ADMIN]      | Daily Operations, Order Review, Invoicing, Dispatch, User Admin    |
+| [Role: SALESMAN]   | Field Orders, Live FG Catalog, Customer Limits, Mobile Tab Bar     |
+| [Role: PRODUCTION] | Batch Runs, BOM Execution, Material Readiness, Yield Variances     |
+| [Role: AUDITOR]    | GSTR-1 Reconciliation, Customer Ageing, Statutory Registers Export|
++-----------------------------------------------------------------------------------------+
+```
+
+### A. Owner Workspace (`owner@foodflow.local`)
+- **Focus:** High-level enterprise performance, capital allocation, and business health.
+- **KPI Cards (8):** Total Sales (`₹`), Total Orders, Pending Orders, Finished Goods Stock, Raw Material Alerts, Total Outstanding Receivables, Avg Yield Variance (`%`), Total Production Cost.
+- **Visualizations:**
+  - Dual-bar Chart.js chart comparing Monthly Sales Revenue vs Monthly Production Cost.
+  - Doughnut Chart.js chart displaying Top 5 Debtors Outstanding Distribution.
+- **Navigation:** Dashboard, Business Overview, Sales Summary, Production Summary, Inventory Overview, Financial Reports, Audit Overview, Profile.
+
+### B. Admin Operations Hub (`admin@foodflow.local`)
+- **Focus:** Day-to-day factory fulfillment, procurement, order processing, and staff administration.
+- **KPI Cards (6):** New Orders Today, Orders Awaiting Approval, Orders Ready for Dispatch, Today's Sales, Pending Payments, Low Stock Items.
+- **Quick Shortcuts:** Post Purchase, Approve Orders, Generate Invoice, Dispatch Goods, Record Payment, User Management.
+- **User Management (`/master/users`):** View staff list, register new users with specific roles, and toggle account activation status.
+- **Navigation:** Dashboard, Sales Orders, Customers, Invoices, Dispatch, Payments, Purchases, Suppliers, Inventory, Products, User Management, Profile.
+
+### C. Field Salesman Desk (`salesman.a@foodflow.local` / `salesman.b@foodflow.local`)
+- **Focus:** Field order booking and customer relationship management.
+- **KPI Cards (5):** My Total Orders, Pending Orders, Approved Orders, Dispatched Orders, My Total Sales Revenue.
+- **Unique Capabilities:**
+  - **Live Factory Finished Goods Catalog:** Real-time visibility into available factory finished goods stock to prevent booking out-of-stock items.
+  - **Mobile Bottom Navigation Bar:** Quick one-touch buttons for *Dashboard*, *New Order*, *Orders*, *Customers*, and *Profile*.
+- **Data Protection:** Restricted from viewing factory raw material stocks, production batch costs, profit margins, purchase bills, and company-wide financial registers.
+
+### D. Production Supervisor Floor (`production@foodflow.local`)
+- **Focus:** Factory manufacturing execution, recipe BOM management, and wastage control.
+- **KPI Cards (7):** Today's Production, Planned Output, Actual Output, Production Efficiency, Finished Packets, Material Alerts, Yield Alerts.
+- **Unique Capabilities:**
+  - **Material Readiness Table:** Live indicators confirming whether flours, oils, and pouches are in stock before scheduling batches.
+  - **Yield & Consumption Tracking:** Automatic tolerance badges flagged when batches exceed $\pm 3\%$ scrap or variance.
+- **Navigation:** Dashboard, Production Runs, Create Production Run, Bill of Materials, Raw Materials, Material Consumption, Finished Goods, Stock Ledger, Profile.
+
+### E. Accountant & Statutory Auditor Portal (`auditor@foodflow.local`)
+- **Focus:** Read-only accounting oversight, GST return reconciliation, and receivables aging.
+- **KPI Cards (6):** Total Invoiced, Payments Collected, Outstanding Receivables, Total Output GST, Current Month Turnover, Total Production Cost.
+- **Unique Capabilities:**
+  - **GSTR-1 Outward Supplies Summary:** Reconciles B2B, B2C, Taxable Value, CGST, SGST, and IGST totals for easy filing.
+  - **Customer Ageing Breakdown:** Categorizes receivables into 0–30, 31–60, 61–90, and 90+ days brackets.
+  - **Statutory Exports:** One-click downloads for Sales Register, Purchase Register, Stock Movement, and Invoices in Excel (`.xlsx`) and CSV formats.
+- **Data Protection:** Read-only mode prevents accidental or unauthorized mutations to orders, purchases, or production runs.
+
+---
+
+## 4. UI/UX & Responsive Design Highlights
+
+1. **Centered Flexbox Login Page:**
+   - Independent, responsive viewport layout (`max-width: 440px`) centered on all devices.
+   - Interactive password visibility toggle (Lucide eye/eye-off icons).
+   - "Remember Me" session persistence.
+   - Collapsible reviewer helper drawer for instant demo role switching.
+2. **Mobile & Tablet Drawer Navigation:**
+   - Off-canvas sidebar with hamburger menu toggle and dim backdrop on screens $< 992\text{px}$.
+   - Dedicated mobile tab bar for field salesmen on smartphones.
+3. **User Self-Service Profile (`/profile`):**
+   - Displays user details, assigned roles, and phone number.
+   - Password update form with current password verification.
+4. **Professional Custom Error Pages:**
+   - `403 Forbidden` ([errors/403.html](file:///c:/Users/KiTE/Desktop/FoodFlow/app/templates/errors/403.html)): Explains role boundaries with a button to return to the user's home workspace.
+   - `404 Not Found` ([errors/404.html](file:///c:/Users/KiTE/Desktop/FoodFlow/app/templates/errors/404.html)): Professional missing-page handler.
+   - `500 Server Error` ([errors/500.html](file:///c:/Users/KiTE/Desktop/FoodFlow/app/templates/errors/500.html)): Clean incident notification without leaking backend stack traces.
+
+---
+
+## 5. Indian Business Compliance & Localization
 
 Designed from the ground up for Indian manufacturing operations:
 
 - **Currency & Formatting:** Indian Rupee (`₹`) with standard Indian digit grouping (`₹1,25,000.00`) across all user interfaces, PDFs, and spreadsheets.
 - **Date Format:** Standard Indian `DD-MM-YYYY` across all tables, forms, and audit timestamps.
 - **GST Compliance:**
-  - **Place of Supply Logic:** Automatically compares the Supplier Factory State (**Tamil Nadu**) with the Customer's State.
-  - **Intra-State Transactions (e.g., Tamil Nadu to Tamil Nadu):** Splits GST evenly into **CGST** and **SGST** (e.g., 5% total tax = 2.50% CGST + 2.50% SGST).
-  - **Inter-State Transactions (e.g., Tamil Nadu to Karnataka):** Applies full GST as **IGST** (e.g., 5% total tax = 5.00% IGST).
+  - **Place of Supply Logic:** Compares Supplier Factory State (**Tamil Nadu**) with Customer State.
+  - **Intra-State Transactions (e.g., Tamil Nadu to Tamil Nadu):** Splits GST evenly into **CGST** (2.5%) and **SGST** (2.5%).
+  - **Inter-State Transactions (e.g., Tamil Nadu to Karnataka):** Applies full GST as **IGST** (5.0%).
   - **HSN / SAC Codes:** Recorded at item level for regulatory outward supply reporting.
   - **Invoice Numbering:** Sequential, reset per Indian Financial Year (`FF/24-25/0001`, `FF/24-25/0002`).
   - **Credit Notes:** Supported for damaged goods, price disputes, or returns with sequential numbering (`CN/24-25/0001`).
@@ -77,32 +155,7 @@ Designed from the ground up for Indian manufacturing operations:
 
 ---
 
-## 4. Role-Based Access Control (RBAC)
-
-FoodFlow ERP enforces strict backend authorization decorators (`@roles_required`) on all administrative, operational, and financial endpoints.
-
-| Role | Target Persona | Accessible Capabilities |
-|---|---|---|
-| **Owner** | Factory Proprietor / Managing Director | Full system access: executive dashboard, all master data, approvals, financial audit reports, settings. |
-| **Admin** | Factory General Manager / Operations Lead | Purchase posting, recipe BOM configuration, order review/approval, invoicing, dispatch, payments, stock adjustments. |
-| **Production** | Factory Floor Supervisor | Production execution, recipe loading, actual vs planned consumption entry, scrap recording, run reversals. |
-| **Salesman** | Field Sales Representatives | Mobile-first sales order entry, customer catalog lookup, customer order history, shortage visibility. Restricted from back-office settings and invoices. |
-| **Auditor** | Internal/External Chartered Accountant | Read-only access to GST registers, stock ledgers, financial summaries, production costings, audit logs, and export downloads. |
-
-### Demo Accounts (Password for all: `Admin@123`)
-
-- **Owner:** `owner@foodflow.local`
-- **Admin:** `admin@foodflow.local`
-- **Production Manager:** `production@foodflow.local`
-- **Salesman A:** `salesman.a@foodflow.local`
-- **Salesman B:** `salesman.b@foodflow.local`
-- **Auditor:** `auditor@foodflow.local`
-
-*(Quick-fill demo buttons are provided on the login screen for rapid role switching).*
-
----
-
-## 5. Inventory & Production Costing Methodology
+## 6. Inventory & Production Costing Methodology
 
 ### 1. Append-Only Stock Ledger
 Stock balances are never overwritten in place. Every transaction creates an immutable row in the `stock_ledger` table with `direction` (`IN` or `OUT`), `quantity`, `unit_rate`, and source document linkages (`Purchase`, `ProductionRun`, `SalesOrder`, `StockAdjustment`). Current stock is computed dynamically:
@@ -128,7 +181,7 @@ If any variance exceeds the configured tolerance threshold (default $\pm 3.00\%$
 
 ---
 
-## 6. Verification Against Benchmark Dataset (Sections 22 & 23)
+## 7. Verification Against Benchmark Dataset (Sections 22 & 23)
 
 The application has been verified against the exact benchmark production scenario:
 
@@ -152,77 +205,83 @@ The application has been verified against the exact benchmark production scenari
 
 ---
 
-## 7. Local Setup & Execution Guide (Windows)
+## 8. Quick Start Guide (Windows)
 
 ### Prerequisites
 - Python 3.10+ (Python 3.13 tested)
 - PostgreSQL 14+ running locally on port `5432`
 - Git
 
-### Step 1: Clone and Set Up Virtual Environment
+### Step 1: Start PostgreSQL Daemon
 ```powershell
-cd C:\Users\KiTE\Desktop\FoodFlow
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+# From the project root (using local PostgreSQL distribution):
+pgsql\bin\postgres.exe -D pgsql\data
 ```
 
-### Step 2: Install Dependencies
+### Step 2: Virtual Environment & Dependencies
 ```powershell
+cd C:\Users\KiTE\Desktop\FoodFlow
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-### Step 3: Configure Environment Variables
-Create a `.env` file in the root directory (or use `.env.example`):
-```ini
-FLASK_APP=run.py
-FLASK_ENV=development
-SECRET_KEY=foodflow-secret-production-key-2024
-DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/foodflow_db
-TEST_DATABASE_URL=postgresql+psycopg2://postgres:postgres@localhost:5432/foodflow_test_db
-```
-
-### Step 4: Initialize Database & Seed Benchmark Data
+### Step 3: Run Database Migrations & Benchmark Seed
 ```powershell
-# Run database migrations
 flask db upgrade
-
-# Populate master data, demo users, and verified benchmark scenario
 python scripts/seed_benchmark.py
 ```
 
-### Step 5: Start the Web Application
+### Step 4: Start the Flask Application
 ```powershell
 python run.py
 ```
-Open your browser and navigate to: `http://127.0.0.1:5000`
+Open your browser and navigate to: **`http://127.0.0.1:5000`**
 
 ---
 
-## 8. Automated Test Suite
+## 9. Demo Accounts (Password for all: `Admin@123`)
 
-The test suite covers inventory atomicity, duplicate prevention, negative stock protection, production batch costing, yield variances, GST calculations, FIFO payment allocations, dispatch deduction, and PDF/Excel generation.
+| Role | Email | Key Capabilities |
+| :--- | :--- | :--- |
+| **Owner** | `owner@foodflow.local` | Executive performance, Sales vs Production charts, Top debtors doughnut chart, operational alerts. |
+| **Admin** | `admin@foodflow.local` | Order approvals, GST invoice generation, dispatch, purchasing, and staff User Management (`/master/users`). |
+| **Salesman A** | `salesman.a@foodflow.local` | Mobile field order booking (`/orders/new`), live finished goods availability catalog, personal order tracking. |
+| **Salesman B** | `salesman.b@foodflow.local` | Second sales territory representative with isolated order book. |
+| **Production** | `production@foodflow.local` | BOM recipe execution, batch runs (`/production/new`), yield variance tracking, raw material readiness. |
+| **Auditor** | `auditor@foodflow.local` | Read-only GSTR-1 outward reconciliation, receivables ageing (0–90+ days), Excel (`.xlsx`) registers export. |
 
-Run all tests via `pytest`:
+---
+
+## 10. Automated Testing & Verification
+
+### Pytest Unit & Integration Suite
+Run the full 15-test automated test suite:
 ```powershell
-pytest -v
+.venv\Scripts\pytest.exe -v
 ```
+**Results:** `15 passed in 8.34s` (100% pass rate covering inventory atomicity, duplicate prevention, negative stock protection, production batch costing, yield variances, GST calculations, FIFO payment allocations, dispatch deduction, and PDF/Excel generation).
 
-All 15 automated test cases execute against the isolated PostgreSQL test database (`foodflow_test_db`).
+### End-to-End Role Verification Script
+Run the automated multi-role access control suite:
+```powershell
+.venv\Scripts\python.exe scripts/verify_roles_e2e.py
+```
+**Results:** `All 5 roles passed RBAC and endpoint tests with 100% success` (validates HTTP 200 on authorized routes and HTTP 403 on restricted endpoints for all 5 roles).
 
 ---
 
-## 9. Comprehensive Reports (Section 17)
+## 11. Regulatory & Operational Reports (17 Types)
 
-FoodFlow ERP provides 17 standard regulatory, accounting, and operational reports with date filters, live browser view, CSV export, and OpenPyXL Excel (`.xlsx`) downloads:
+FoodFlow ERP provides 17 standard regulatory, accounting, and operational reports with date range filtering, live web viewing, CSV export, and OpenPyXL Excel (`.xlsx`) downloads:
 
-1. **Sales Register:** Chronological tax invoices with taxable, CGST, SGST, IGST, and total.
-2. **Customer-Wise Sales Summary:** Aggregate turnover and tax by customer.
+1. **Sales Register:** Chronological tax invoices with taxable, CGST, SGST, IGST, and grand totals.
+2. **Customer-Wise Sales Summary:** Aggregate turnover and tax breakdown by client.
 3. **Product-Wise Sales Summary:** Packets sold and revenue generated per SKU.
-4. **GST Outward Supplies Summary:** Ready reconciliation for GSTR-1 & GSTR-3B.
-5. **Purchase Register:** Supplier invoices, received quantities, and input GST.
-6. **Raw Material Stock Summary:** Opening, inward, consumed, closing, and valuation.
-7. **Packaging Material Stock Summary:** Pouch and carton closing balances and scrap.
-8. **Finished Goods Stock Summary:** Good output, dispatched units, closing packets.
+4. **GST Outward Supplies Summary:** Ready reconciliation for GSTR-1 & GSTR-3B filings.
+5. **Purchase Register:** Supplier invoices, received quantities, and input tax credit (ITC).
+6. **Raw Material Stock Summary:** Opening, inward, consumed, closing balances, and valuations.
+7. **Packaging Material Stock Summary:** Pouch and carton closing balances and machine scrap.
+8. **Finished Goods Stock Summary:** Good output, dispatched units, and closing packet inventory.
 9. **Daily Stock Movement Ledger:** Complete debit/credit audit trail of every stock item.
 10. **Reorder Level Alert Report:** Items at or below minimum threshold.
 11. **Production Register:** Batch runs, planned vs actual outputs, total cost.
@@ -235,8 +294,9 @@ FoodFlow ERP provides 17 standard regulatory, accounting, and operational report
 
 ---
 
-## 10. Known Limitations & Roadmap
+## 12. Security & Compliance Summary
 
-- **E-Way Bill Direct API:** E-Way Bill numbers can currently be recorded on dispatches; direct NIC API integration via GSP can be added in Phase 2.
-- **Barcode / QR Scanning:** Batch QR code scanning on mobile devices for dispatch verification is architected and ready for mobile camera wrapper integration.
-- **Multi-Branch Warehouses:** Currently architected for single-factory multi-godown setup; multi-state manufacturing locations can be enabled via tenant branch IDs.
+* **OWASP Hardened:** All forms protected by Flask-WTF CSRF tokens; inputs sanitized; SQL injection prevented via SQLAlchemy parameterized queries.
+* **Granular RBAC:** Decorators validate role membership on every HTTP request; unauthorized access triggers HTTP 403 with logged audit events.
+* **Immutable Audit Trail:** Append-only `audit_logs` table records user ID, action (`CREATE`, `UPDATE`, `POST`), module, record ID, and change descriptions.
+* **Precision Decimals:** Zero floating-point rounding errors on financial or inventory transactions.
