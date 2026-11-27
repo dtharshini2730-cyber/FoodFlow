@@ -24,6 +24,7 @@
         <div class="col-md-5">
             <label class="form-label" for="type">Select Audit Report</label>
             <select name="type" id="type" class="form-select form-select-sm" onchange="this.form.submit()">
+                {% if not (current_user.has_role('production') and not (current_user.has_role('owner') or current_user.has_role('admin'))) %}
                 <optgroup label="Sales & Revenue">
                     <option value="sales_register" {% if report_type == 'sales_register' %}selected{% endif %}>1. Sales Register</option>
                     <option value="customer_sales" {% if report_type == 'customer_sales' %}selected{% endif %}>2. Customer-wise Sales</option>
@@ -37,18 +38,29 @@
                     <option value="finished_goods_stock" {% if report_type == 'finished_goods_stock' %}selected{% endif %}>8. Finished Goods Stock Summary</option>
                     <option value="stock_movement" {% if report_type == 'stock_movement' %}selected{% endif %}>9. Stock Movement History</option>
                 </optgroup>
+                {% else %}
+                <optgroup label="Inventory Stock">
+                    <option value="raw_material_stock" {% if report_type == 'raw_material_stock' %}selected{% endif %}>Raw Material Stock Summary</option>
+                    <option value="packaging_stock" {% if report_type == 'packaging_stock' %}selected{% endif %}>Packaging Stock Summary</option>
+                    <option value="finished_goods_stock" {% if report_type == 'finished_goods_stock' %}selected{% endif %}>Finished Goods Stock Summary</option>
+                </optgroup>
+                {% endif %}
                 <optgroup label="Production & Costing">
-                    <option value="production_report" {% if report_type == 'production_report' %}selected{% endif %}>10. Production Report</option>
-                    <option value="consumption_analysis" {% if report_type == 'consumption_analysis' %}selected{% endif %}>11. Planned vs Actual Consumption</option>
-                    <option value="yield_report" {% if report_type == 'yield_report' %}selected{% endif %}>12. Production Yield Report</option>
-                    <option value="wastage_report" {% if report_type == 'wastage_report' %}selected{% endif %}>13. Wastage Report</option>
-                    <option value="cost_per_packet" {% if report_type == 'cost_per_packet' %}selected{% endif %}>14. Cost Per Packet Report</option>
+                    <option value="production_report" {% if report_type == 'production_report' %}selected{% endif %}>Production Register</option>
+                    <option value="consumption_analysis" {% if report_type == 'consumption_analysis' %}selected{% endif %}>Planned vs Actual Consumption</option>
+                    <option value="yield_report" {% if report_type == 'yield_report' %}selected{% endif %}>Production Yield Report</option>
+                    <option value="wastage_report" {% if report_type == 'wastage_report' %}selected{% endif %}>Wastage Report</option>
+                    {% if not (current_user.has_role('production') and not (current_user.has_role('owner') or current_user.has_role('admin'))) %}
+                    <option value="cost_per_packet" {% if report_type == 'cost_per_packet' %}selected{% endif %}>Cost Per Packet Report</option>
+                    {% endif %}
                 </optgroup>
+                {% if not (current_user.has_role('production') and not (current_user.has_role('owner') or current_user.has_role('admin'))) %}
                 <optgroup label="Collections & Dues">
-                    <option value="payment_collection" {% if report_type == 'payment_collection' %}selected{% endif %}>15. Payment Collection Report</option>
-                    <option value="customer_outstanding" {% if report_type == 'customer_outstanding' %}selected{% endif %}>16. Customer Outstanding Report</option>
-                    <option value="customer_ageing" {% if report_type == 'customer_ageing' %}selected{% endif %}>17. Customer Ageing Report (0-30, 31-60, 61-90, 90+)</option>
+                    <option value="payment_collection" {% if report_type == 'payment_collection' %}selected{% endif %}>Payment Collection Report</option>
+                    <option value="customer_outstanding" {% if report_type == 'customer_outstanding' %}selected{% endif %}>Customer Outstanding Report</option>
+                    <option value="customer_ageing" {% if report_type == 'customer_ageing' %}selected{% endif %}>Customer Ageing Report (0-30, 31-60, 61-90, 90+)</option>
                 </optgroup>
+                {% endif %}
             </select>
         </div>
 
@@ -92,7 +104,8 @@
                 {% for r in rows %}
                 <tr>
                     {% for col in r %}
-                    <td class="{% if '₹' in col or '%' in col or col.replace('.', '').replace(',', '').isdigit() %}text-end{% endif %}">
+                    {% set col_str = col|string %}
+                    <td class="{% if '₹' in col_str or '%' in col_str or col_str.replace('.', '').replace(',', '').replace('-', '').isdigit() %}text-end{% endif %}">
                         {{ col }}
                     </td>
                     {% endfor %}

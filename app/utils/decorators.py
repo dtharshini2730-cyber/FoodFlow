@@ -15,9 +15,6 @@ def roles_required(*role_names):
                 return redirect(url_for('auth.login'))
             
             user_roles = [r.name for r in current_user.roles]
-            # Owner has overall access
-            if 'owner' in user_roles:
-                return f(*args, **kwargs)
             
             # Check if user has at least one of the required roles
             for role in role_names:

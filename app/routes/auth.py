@@ -1,6 +1,8 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
 from flask_login import login_user, logout_user, login_required, current_user
+from app import db
 from app.models.user import User
+from app.models.audit import AuditLog
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -44,3 +46,41 @@ def logout():
     logout_user()
     flash('You have been logged out successfully.', 'info')
     return redirect(url_for('auth.login'))
+
+
+@auth_bp.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    if request.method == 'POST':
+        action = request.form.get('action')
+        if action == 'change_password':
+            current_pwd = request.form.get('current_password', '')
+            new_pwd = request.form.get('new_password', '')
+            confirm_pwd = request.form.get('confirm_password', '')
+            
+            if not current_user.check_password(current_pwd):
+                flash('Current password is incorrect.', 'danger')
+                return redirect(url_for('auth.profile'))
+                
+            if len(new_pwd) < 6:
+                flash('New password must be at least 6 characters.', 'danger')
+                return redirect(url_for('auth.profile'))
+                
+            if new_pwd != confirm_pwd:
+                flash('New passwords do not match.', 'danger')
+                return redirect(url_for('auth.profile'))
+                
+            current_user.set_password(new_pwd)
+            db.session.commit()
+            
+            AuditLog.log(
+                user_id=current_user.id,
+                action='UPDATE',
+                module='Users',
+                record_id=current_user.id,
+                description=f"User '{current_user.email}' updated their account password."
+            )
+            flash('Password updated successfully.', 'success')
+            return redirect(url_for('auth.profile'))
+            
+    return render_template('auth/profile.html', user=current_user)

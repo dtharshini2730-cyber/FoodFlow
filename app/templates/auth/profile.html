@@ -1,0 +1,98 @@
+{% extends 'base.html' %}
+
+{% block title %}My Profile - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">User Profile & Account Settings</h1>
+        <p class="text-muted small mb-0">View account roles and update security credentials.</p>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- User Account Summary -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-4">
+                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 56px; height: 56px; font-size: 1.4rem;">
+                    {{ user.full_name[:1] }}
+                </div>
+                <div>
+                    <h2 class="h5 fw-bold text-dark mb-1">{{ user.full_name }}</h2>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle text-uppercase fw-semibold" style="font-size: 0.75rem;">
+                        {{ user.primary_role }}
+                    </span>
+                </div>
+            </div>
+
+            <div class="border-top pt-3">
+                <div class="mb-3">
+                    <label class="text-muted small d-block mb-1">Email Address</label>
+                    <div class="fw-semibold text-dark">{{ user.email }}</div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="text-muted small d-block mb-1">Username</label>
+                    <div class="text-dark"><code>{{ user.username }}</code></div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="text-muted small d-block mb-1">Assigned Role Privileges</label>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for r in user.roles %}
+                        <span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.72rem;">{{ r.name }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="text-muted small d-block mb-1">Account Status</label>
+                    {% if user.is_active %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Active & Verified</span>
+                    {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Deactivated</span>
+                    {% endif %}
+                </div>
+
+                <div>
+                    <label class="text-muted small d-block mb-1">Member Since</label>
+                    <div class="small text-muted">{{ user.created_at.strftime('%d-%m-%Y') if user.created_at else 'Initial Setup' }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Change Password Form -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-4">
+            <h2 class="h6 fw-bold text-dark border-bottom pb-2 mb-3">Security & Password Update</h2>
+            <p class="text-muted small mb-4">Ensure your password is at least 6 characters long and known only to you.</p>
+
+            <form method="POST" action="{{ url_for('auth.profile') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="action" value="change_password">
+
+                <div class="mb-3">
+                    <label class="form-label" for="current_password">Current Password *</label>
+                    <input type="password" name="current_password" id="current_password" class="form-control" required placeholder="••••••••">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label" for="new_password">New Password *</label>
+                    <input type="password" name="new_password" id="new_password" class="form-control" minlength="6" required placeholder="Minimum 6 characters">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label" for="confirm_password">Confirm New Password *</label>
+                    <input type="password" name="confirm_password" id="confirm_password" class="form-control" minlength="6" required placeholder="Re-enter new password">
+                </div>
+
+                <button type="submit" class="btn btn-primary-custom btn-sm px-4">
+                    <i data-lucide="key" style="width: 14px; height: 14px; margin-right: 4px;"></i> Update Password
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

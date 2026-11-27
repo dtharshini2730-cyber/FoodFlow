@@ -15,6 +15,7 @@ inventory_bp = Blueprint('inventory', __name__)
 
 @inventory_bp.route('/')
 @login_required
+@roles_required('owner', 'admin', 'production', 'auditor')
 def index():
     raw_materials = ReportService.get_raw_material_stock_summary()
     packaging = ReportService.get_packaging_stock_summary()
@@ -29,6 +30,7 @@ def index():
 
 @inventory_bp.route('/ledger')
 @login_required
+@roles_required('owner', 'admin', 'production', 'auditor')
 def ledger():
     item_type = request.args.get('item_type', '').strip()
     item_id = request.args.get('item_id', type=int)

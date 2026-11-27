@@ -1,0 +1,278 @@
+{% extends 'base.html' %}
+
+{% block title %}Owner Executive Dashboard - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Executive Business Performance</h1>
+        <p class="text-muted small mb-0">High-level enterprise turnover, inventory valuation, production efficiency and receivables.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.index', type='sales_register') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+            <i data-lucide="trending-up" style="width: 14px; height: 14px;"></i> Sales Summary
+        </a>
+        <a href="{{ url_for('reports.index', type='gst_outward') }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+            <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> GST Summary
+        </a>
+    </div>
+</div>
+
+<!-- 8 Executive KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Total Sales</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ total_sales | inr }}</div>
+            <div class="text-muted small mt-1">Net posted invoice revenue</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">Total Orders</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ total_orders }}</div>
+            <div class="text-muted small mt-1">Lifetime customer orders</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-warning">
+            <div class="text-muted small fw-semibold text-uppercase">Pending Orders</div>
+            <div class="h3 fw-bold text-warning mt-2 mb-0">{{ pending_orders_count }}</div>
+            <div class="text-muted small mt-1">Awaiting admin review</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-success">
+            <div class="text-muted small fw-semibold text-uppercase">Finished Goods Stock</div>
+            <div class="h3 fw-bold text-success mt-2 mb-0">{{ total_finished_pkts | qty('pkts') }}</div>
+            <div class="text-muted small mt-1">Available packaged snacks</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-danger">
+            <div class="text-muted small fw-semibold text-uppercase">Raw Material Alerts</div>
+            <div class="h3 fw-bold {{ 'text-danger' if raw_material_alerts_count > 0 else 'text-dark' }} mt-2 mb-0">
+                {{ raw_material_alerts_count }}
+            </div>
+            <div class="text-muted small mt-1">Items at or below reorder</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-warning">
+            <div class="text-muted small fw-semibold text-uppercase">Outstanding Payments</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ total_outstanding | inr }}</div>
+            <div class="text-muted small mt-1">Total customer receivables</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Production Performance</div>
+            <div class="h3 fw-bold {{ 'text-danger' if avg_yield_variance < -3 else 'text-dark' }} mt-2 mb-0">
+                {{ avg_yield_variance | round(2) }}%
+            </div>
+            <div class="text-muted small mt-1">Average batch yield variance</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-secondary">
+            <div class="text-muted small fw-semibold text-uppercase">Total Production Cost</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ total_production_cost | inr }}</div>
+            <div class="text-muted small mt-1">Materials, packaging & overheads</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row g-3 mb-4">
+    <!-- Monthly Sales Trend -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h6 fw-bold mb-0 text-dark">Revenue vs Production Cost (Last 6 Months)</h2>
+                <span class="badge bg-light text-muted border">Monthly Comparison</span>
+            </div>
+            <div style="height: 260px;">
+                <canvas id="salesCostChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outstanding Receivables Distribution -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="h6 fw-bold mb-0 text-dark">Outstanding Dues by Customer</h2>
+                <span class="badge bg-light text-muted border">Top Debtors</span>
+            </div>
+            <div style="height: 260px;">
+                <canvas id="dueChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alerts Section -->
+<div class="row g-3 mb-4">
+    <!-- Low Stock Alerts -->
+    <div class="col-lg-6">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <i data-lucide="alert-triangle" class="text-danger" style="width: 18px; height: 18px;"></i>
+                    <h2 class="h6 fw-bold mb-0 text-dark">Material Stock Alerts ({{ raw_alerts | length }})</h2>
+                </div>
+                <a href="{{ url_for('inventory.index') }}" class="small text-primary text-decoration-none">View Inventory</a>
+            </div>
+            {% if raw_alerts %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Material</th>
+                            <th class="text-end">Current Stock</th>
+                            <th class="text-end">Reorder Level</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in raw_alerts %}
+                        <tr>
+                            <td class="fw-semibold text-dark">{{ a.name }}</td>
+                            <td class="text-end fw-bold text-danger">{{ a.current | qty(a.unit) }}</td>
+                            <td class="text-end text-muted">{{ a.reorder | qty(a.unit) }}</td>
+                            <td class="text-center">
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">REORDER</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted small">
+                <i data-lucide="check-circle" class="text-success mb-2" style="width: 24px; height: 24px;"></i>
+                <div>All raw materials and packaging inventory levels are optimal.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Production Variance Alerts -->
+    <div class="col-lg-6">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <div class="d-flex align-items-center gap-2">
+                    <i data-lucide="alert-circle" class="text-warning" style="width: 18px; height: 18px;"></i>
+                    <h2 class="h6 fw-bold mb-0 text-dark">High Production Variance Alerts (>3%)</h2>
+                </div>
+                <a href="{{ url_for('production.index') }}" class="small text-primary text-decoration-none">Production Runs</a>
+            </div>
+            {% if high_variance_runs %}
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Run #</th>
+                            <th>Product</th>
+                            <th class="text-end">Yield Var %</th>
+                            <th class="text-end">Cost / Pkt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in high_variance_runs %}
+                        <tr>
+                            <td><a href="{{ url_for('production.view', id=r.id) }}" class="fw-semibold text-primary text-decoration-none">{{ r.run_number }}</a></td>
+                            <td>{{ r.product.name }}</td>
+                            <td class="text-end fw-bold text-danger">{{ r.yield_variance_pct }}%</td>
+                            <td class="text-end">{{ r.cost_per_packet | inr }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted small">
+                <i data-lucide="check-circle" class="text-success mb-2" style="width: 24px; height: 24px;"></i>
+                <div>All recent production runs operated within standard 3% tolerance.</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Sales vs Production Cost Chart
+    const ctxSales = document.getElementById('salesCostChart');
+    if (ctxSales) {
+        new Chart(ctxSales, {
+            type: 'bar',
+            data: {
+                labels: {{ monthly_sales_labels | tojson }},
+                datasets: [
+                    {
+                        label: 'Sales Revenue (₹)',
+                        data: {{ monthly_sales_values | tojson }},
+                        backgroundColor: '#2563EB',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Production Cost (₹)',
+                        data: {{ monthly_prod_cost_values | tojson }},
+                        backgroundColor: '#94A3B8',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(c) {
+                                return c.dataset.label + ': ₹' + Number(c.raw).toLocaleString('en-IN');
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(v) { return '₹' + Number(v).toLocaleString('en-IN'); }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Top Outstanding Receivables Chart
+    const ctxDue = document.getElementById('dueChart');
+    if (ctxDue) {
+        new Chart(ctxDue, {
+            type: 'doughnut',
+            data: {
+                labels: {{ due_labels | tojson }},
+                datasets: [{
+                    data: {{ due_values | tojson }},
+                    backgroundColor: ['#DC2626', '#D97706', '#2563EB', '#16A34A', '#64748B']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

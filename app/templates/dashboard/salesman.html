@@ -1,0 +1,159 @@
+{% extends 'base.html' %}
+
+{% block title %}Salesman Workspace - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Field Sales Workspace</h1>
+        <p class="text-muted small mb-0">Welcome, {{ current_user.full_name }}. Book customer orders and track dispatch fulfillment.</p>
+    </div>
+    <a href="{{ url_for('orders.new_order') }}" class="btn btn-primary-custom btn-sm fw-bold d-flex align-items-center gap-1 shadow-sm px-3 py-2">
+        <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Create New Order
+    </a>
+</div>
+
+<!-- 5 Salesman KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">My Total Orders</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ my_total_orders }}</div>
+            <div class="text-muted small mt-1">Booked by me</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-warning">
+            <div class="text-muted small fw-semibold text-uppercase">Pending Orders</div>
+            <div class="h3 fw-bold text-warning mt-2 mb-0">{{ my_pending_orders }}</div>
+            <div class="text-muted small mt-1">Under admin review</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">Approved Orders</div>
+            <div class="h3 fw-bold text-primary mt-2 mb-0">{{ my_approved_orders }}</div>
+            <div class="text-muted small mt-1">Ready for invoicing</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-success">
+            <div class="text-muted small fw-semibold text-uppercase">Dispatched</div>
+            <div class="h3 fw-bold text-success mt-2 mb-0">{{ my_dispatched_orders }}</div>
+            <div class="text-muted small mt-1">Shipped to customer</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">My Sales Value</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ my_sales_summary | inr }}</div>
+            <div class="text-muted small mt-1">Total turnover booked</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Salesman Action Buttons -->
+<div class="card card-custom p-3 mb-4 bg-light border">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="fw-semibold text-dark small me-2">Main Actions:</span>
+        <a href="{{ url_for('orders.new_order') }}" class="btn btn-primary-custom btn-sm">
+            <i data-lucide="plus-circle" style="width: 14px; height: 14px; margin-right: 4px;"></i> Create New Order
+        </a>
+        <a href="{{ url_for('orders.index') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="shopping-bag" style="width: 14px; height: 14px; margin-right: 4px;"></i> View My Orders
+        </a>
+        <a href="{{ url_for('master.customers') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="users" style="width: 14px; height: 14px; margin-right: 4px;"></i> View My Customers
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- My Recent Orders -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h2 class="h6 fw-bold mb-0 text-dark">My Recent Customer Orders</h2>
+                <a href="{{ url_for('orders.index') }}" class="small text-primary text-decoration-none">All My Orders</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Order #</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th class="text-end">Total Amount</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in recent_orders %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('orders.view', id=o.id) }}" class="fw-semibold text-primary text-decoration-none">
+                                    {{ o.order_number }}
+                                </a>
+                            </td>
+                            <td>{{ o.order_date | date_in }}</td>
+                            <td>{{ o.customer.name }}</td>
+                            <td class="text-end fw-semibold">{{ o.total_amount | inr }}</td>
+                            <td class="text-center">
+                                <span class="badge-status badge-{{ o.status | lower | replace(' ', '-') }}">
+                                    {{ o.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4 text-muted small">You haven't submitted any orders yet. Click "Create New Order" to start!</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Stock & Price Catalog -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h2 class="h6 fw-bold mb-0 text-dark">Finished Goods Availability</h2>
+                <span class="badge bg-light text-muted border">Live Factory Stock</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Product</th>
+                            <th class="text-end">Selling Price</th>
+                            <th class="text-end">Stock in Factory</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in catalog %}
+                        <tr>
+                            <td>
+                                <strong class="text-dark">{{ item.name }}</strong>
+                                <div class="text-muted small">{{ item.pack_size }}</div>
+                            </td>
+                            <td class="text-end fw-semibold">{{ item.price | inr }}</td>
+                            <td class="text-end">
+                                {% if item.available_stock > 0 %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle fw-bold">
+                                    {{ item.available_stock | qty('pkts') }}
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Out of Stock</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

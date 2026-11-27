@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Operations Dashboard - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Factory Operations Dashboard</h1>
+        <p class="text-muted small mb-0">Daily order processing, invoice issuance, goods dispatch, and supplier procurement.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('orders.index') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+            <i data-lucide="shopping-cart" style="width: 14px; height: 14px;"></i> All Orders
+        </a>
+        <a href="{{ url_for('purchases.new_purchase') }}" class="btn btn-primary-custom btn-sm d-flex align-items-center gap-1">
+            <i data-lucide="plus-circle" style="width: 14px; height: 14px;"></i> Post Purchase
+        </a>
+    </div>
+</div>
+
+<!-- 6 Admin Operational Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-2">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">New Orders</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ new_orders_count }}</div>
+            <div class="text-muted small mt-1">Booked today</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-2">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-warning">
+            <div class="text-muted small fw-semibold text-uppercase">Awaiting Approval</div>
+            <div class="h3 fw-bold text-warning mt-2 mb-0">{{ awaiting_approval }}</div>
+            <div class="text-muted small mt-1">Pending review</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-2">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Ready for Dispatch</div>
+            <div class="h3 fw-bold text-primary mt-2 mb-0">{{ ready_dispatch }}</div>
+            <div class="text-muted small mt-1">Approved orders</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-2">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-success">
+            <div class="text-muted small fw-semibold text-uppercase">Today's Sales</div>
+            <div class="h3 fw-bold text-success mt-2 mb-0">{{ todays_sales | inr }}</div>
+            <div class="text-muted small mt-1">Tax invoices billed</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-2">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-danger">
+            <div class="text-muted small fw-semibold text-uppercase">Pending Payments</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ pending_payments | inr }}</div>
+            <div class="text-muted small mt-1">Due receivables</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-2">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-secondary">
+            <div class="text-muted small fw-semibold text-uppercase">Low Stock Alerts</div>
+            <div class="h3 fw-bold {{ 'text-danger' if low_stock_count > 0 else 'text-dark' }} mt-2 mb-0">{{ low_stock_count }}</div>
+            <div class="text-muted small mt-1">Reorder threshold</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Operational Action Shortcuts -->
+<div class="card card-custom p-3 mb-4 bg-light border">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="fw-semibold text-dark small me-2">Quick Operations:</span>
+        <a href="{{ url_for('orders.index') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="check-square" style="width: 14px; height: 14px; margin-right: 4px;"></i> Review Orders
+        </a>
+        <a href="{{ url_for('invoices.index') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="receipt" style="width: 14px; height: 14px; margin-right: 4px;"></i> Invoices Register
+        </a>
+        <a href="{{ url_for('dispatch.index') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="truck" style="width: 14px; height: 14px; margin-right: 4px;"></i> Goods Dispatch
+        </a>
+        <a href="{{ url_for('payments.new_payment') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="credit-card" style="width: 14px; height: 14px; margin-right: 4px;"></i> Record Payment
+        </a>
+        <a href="{{ url_for('purchases.new_purchase') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="shopping-bag" style="width: 14px; height: 14px; margin-right: 4px;"></i> Enter Purchase
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Orders Awaiting Action -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h2 class="h6 fw-bold mb-0 text-dark">Recent Sales Orders</h2>
+                <a href="{{ url_for('orders.index') }}" class="small text-primary text-decoration-none">View All</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Order #</th>
+                            <th>Customer</th>
+                            <th>Salesman</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in recent_orders %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('orders.view', id=o.id) }}" class="fw-semibold text-primary text-decoration-none">
+                                    {{ o.order_number }}
+                                </a>
+                            </td>
+                            <td>{{ o.customer.name }}</td>
+                            <td><span class="text-muted small">{{ o.salesman.full_name }}</span></td>
+                            <td class="text-end fw-semibold">{{ o.total_amount | inr }}</td>
+                            <td class="text-center">
+                                <span class="badge-status badge-{{ o.status | lower | replace(' ', '-') }}">
+                                    {{ o.status }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('orders.view', id=o.id) }}" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-4 text-muted small">No recent sales orders found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Outstanding Receivables Table -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h2 class="h6 fw-bold mb-0 text-dark">Pending Invoices / Receivables</h2>
+                <a href="{{ url_for('payments.index') }}" class="small text-primary text-decoration-none">Payments</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th class="text-end">Due Amount</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for inv in unpaid_invoices %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('invoices.view', id=inv.id) }}" class="fw-semibold text-primary text-decoration-none">
+                                    {{ inv.invoice_number }}
+                                </a>
+                            </td>
+                            <td>{{ inv.customer_name }}</td>
+                            <td class="text-end fw-bold text-danger">{{ inv.outstanding_amount | inr }}</td>
+                            <td class="text-center">
+                                <a href="{{ url_for('payments.new_payment') }}?customer_id={{ inv.customer_id }}" class="btn btn-outline-primary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                    Collect
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted small">All customer invoices are fully settled.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -17,203 +17,234 @@
 <body>
     <div class="app-wrapper">
         {% if current_user.is_authenticated %}
-        <!-- Desktop Sidebar -->
-        <aside class="sidebar">
+        <!-- Desktop & Tablet Sidebar -->
+        <aside class="sidebar" id="appSidebar">
             <div class="sidebar-header">
                 <div class="brand-badge">FF</div>
-                <div>
+                <div class="overflow-hidden">
                     <h1 class="brand-text">FoodFlow</h1>
-                    <div class="brand-sub">ERP & Audit System</div>
+                    <div class="brand-sub">Manufacturing ERP</div>
                 </div>
+                <button type="button" class="btn btn-sm d-md-none ms-auto p-0 text-muted" onclick="toggleSidebar()" aria-label="Close sidebar">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
             </div>
             
             <div class="sidebar-nav">
-                <!-- Role Specific Navigation -->
                 {% set user_roles = current_user.roles | map(attribute='name') | list %}
                 
                 {% if 'owner' in user_roles %}
-                    <!-- OWNER SIDEBAR -->
-                    <div class="nav-section-title">Executive Overview</div>
+                    <!-- 1. OWNER NAVIGATION -->
+                    <div class="nav-section-title">Executive Workspace</div>
                     <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
                         <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Dashboard
                     </a>
-                    <a href="{{ url_for('reports.index', type='sales_register') }}" class="nav-link-custom">
-                        <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i> Sales Overview
+                    <a href="{{ url_for('reports.index', type='sales_register') }}" class="nav-link-custom {% if request.args.get('type') == 'sales_register' %}active{% endif %}">
+                        <i data-lucide="trending-up" style="width: 18px; height: 18px;"></i> Sales Summary
                     </a>
-                    <a href="{{ url_for('production.index') }}" class="nav-link-custom {% if 'production' in request.endpoint %}active{% endif %}">
-                        <i data-lucide="factory" style="width: 18px; height: 18px;"></i> Production Overview
+                    <a href="{{ url_for('reports.index', type='production_report') }}" class="nav-link-custom {% if request.args.get('type') == 'production_report' %}active{% endif %}">
+                        <i data-lucide="factory" style="width: 18px; height: 18px;"></i> Production Summary
                     </a>
-                    <a href="{{ url_for('inventory.index') }}" class="nav-link-custom {% if 'inventory' in request.endpoint %}active{% endif %}">
-                        <i data-lucide="boxes" style="width: 18px; height: 18px;"></i> Inventory
+                    <a href="{{ url_for('inventory.index') }}" class="nav-link-custom {% if request.endpoint == 'inventory.index' %}active{% endif %}">
+                        <i data-lucide="boxes" style="width: 18px; height: 18px;"></i> Inventory Overview
                     </a>
-                    <a href="{{ url_for('reports.index', type='cost_per_packet') }}" class="nav-link-custom">
-                        <i data-lucide="pie-chart" style="width: 18px; height: 18px;"></i> Cost & Profit
+                    <a href="{{ url_for('reports.index', type='gst_outward') }}" class="nav-link-custom {% if request.args.get('type') == 'gst_outward' %}active{% endif %}">
+                        <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i> Financial Reports
                     </a>
-                    <a href="{{ url_for('reports.index', type='customer_outstanding') }}" class="nav-link-custom">
-                        <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i> Customer Dues
+                    <a href="{{ url_for('reports.index', type='stock_movement') }}" class="nav-link-custom {% if request.args.get('type') == 'stock_movement' %}active{% endif %}">
+                        <i data-lucide="history" style="width: 18px; height: 18px;"></i> Audit Overview
                     </a>
-                    
-                    <div class="nav-section-title">Administration</div>
-                    <a href="{{ url_for('reports.index') }}" class="nav-link-custom {% if 'reports' in request.endpoint %}active{% endif %}">
-                        <i data-lucide="file-text" style="width: 18px; height: 18px;"></i> All Reports
-                    </a>
-                    <a href="{{ url_for('master.customers') }}" class="nav-link-custom">
-                        <i data-lucide="users" style="width: 18px; height: 18px;"></i> Master Data
-                    </a>
-                    <a href="{{ url_for('inventory.ledger') }}" class="nav-link-custom">
-                        <i data-lucide="book-open" style="width: 18px; height: 18px;"></i> Stock Ledger
+                    <a href="{{ url_for('auth.profile') }}" class="nav-link-custom {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+                        <i data-lucide="user" style="width: 18px; height: 18px;"></i> Profile
                     </a>
 
                 {% elif 'admin' in user_roles %}
-                    <!-- ADMIN SIDEBAR -->
+                    <!-- 2. ADMIN NAVIGATION -->
                     <div class="nav-section-title">Operations</div>
                     <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
                         <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Dashboard
                     </a>
-                    <a href="{{ url_for('orders.index') }}" class="nav-link-custom {% if 'orders' in request.endpoint %}active{% endif %}">
-                        <i data-lucide="shopping-cart" style="width: 18px; height: 18px;"></i> Orders
+                    <a href="{{ url_for('orders.index') }}" class="nav-link-custom {% if request.endpoint and 'orders' in request.endpoint %}active{% endif %}">
+                        <i data-lucide="shopping-cart" style="width: 18px; height: 18px;"></i> Sales Orders
                     </a>
-                    <a href="{{ url_for('invoices.index') }}" class="nav-link-custom {% if 'invoices' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('master.customers') }}" class="nav-link-custom {% if request.endpoint == 'master.customers' %}active{% endif %}">
+                        <i data-lucide="users" style="width: 18px; height: 18px;"></i> Customers
+                    </a>
+                    <a href="{{ url_for('invoices.index') }}" class="nav-link-custom {% if request.endpoint and 'invoices' in request.endpoint %}active{% endif %}">
                         <i data-lucide="receipt" style="width: 18px; height: 18px;"></i> Invoices
                     </a>
-                    <a href="{{ url_for('dispatch.index') }}" class="nav-link-custom {% if 'dispatch' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('dispatch.index') }}" class="nav-link-custom {% if request.endpoint and 'dispatch' in request.endpoint %}active{% endif %}">
                         <i data-lucide="truck" style="width: 18px; height: 18px;"></i> Dispatch
                     </a>
-                    <a href="{{ url_for('payments.index') }}" class="nav-link-custom {% if 'payments' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('payments.index') }}" class="nav-link-custom {% if request.endpoint and 'payments' in request.endpoint %}active{% endif %}">
                         <i data-lucide="credit-card" style="width: 18px; height: 18px;"></i> Payments
                     </a>
                     
-                    <div class="nav-section-title">Supply Chain</div>
-                    <a href="{{ url_for('purchases.index') }}" class="nav-link-custom {% if 'purchases' in request.endpoint %}active{% endif %}">
+                    <div class="nav-section-title">Procurement & Master</div>
+                    <a href="{{ url_for('purchases.index') }}" class="nav-link-custom {% if request.endpoint and 'purchases' in request.endpoint %}active{% endif %}">
                         <i data-lucide="shopping-bag" style="width: 18px; height: 18px;"></i> Purchases
                     </a>
-                    <a href="{{ url_for('inventory.index') }}" class="nav-link-custom {% if 'inventory' in request.endpoint %}active{% endif %}">
+                    <a href="{{ url_for('master.suppliers') }}" class="nav-link-custom {% if request.endpoint == 'master.suppliers' %}active{% endif %}">
+                        <i data-lucide="building-2" style="width: 18px; height: 18px;"></i> Suppliers
+                    </a>
+                    <a href="{{ url_for('inventory.index') }}" class="nav-link-custom {% if request.endpoint and 'inventory' in request.endpoint %}active{% endif %}">
                         <i data-lucide="boxes" style="width: 18px; height: 18px;"></i> Inventory
                     </a>
-                    <a href="{{ url_for('master.customers') }}" class="nav-link-custom">
-                        <i data-lucide="users" style="width: 18px; height: 18px;"></i> Customers
-                    </a>
-                    <a href="{{ url_for('master.products') }}" class="nav-link-custom">
+                    <a href="{{ url_for('master.products') }}" class="nav-link-custom {% if request.endpoint == 'master.products' %}active{% endif %}">
                         <i data-lucide="package" style="width: 18px; height: 18px;"></i> Products
                     </a>
-                    <a href="{{ url_for('reports.index') }}" class="nav-link-custom">
-                        <i data-lucide="bar-chart-2" style="width: 18px; height: 18px;"></i> Reports
+                    <a href="{{ url_for('master.users') }}" class="nav-link-custom {% if request.endpoint == 'master.users' %}active{% endif %}">
+                        <i data-lucide="user-check" style="width: 18px; height: 18px;"></i> User Management
+                    </a>
+                    <a href="{{ url_for('auth.profile') }}" class="nav-link-custom {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+                        <i data-lucide="user" style="width: 18px; height: 18px;"></i> Profile
                     </a>
 
-                {% elif 'production' in user_roles %}
-                    <!-- PRODUCTION SUPERVISOR SIDEBAR -->
-                    <div class="nav-section-title">Manufacturing</div>
-                    <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-                        <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Dashboard
-                    </a>
-                    <a href="{{ url_for('production.new_run') }}" class="nav-link-custom {% if request.endpoint == 'production.new_run' %}active{% endif %}">
-                        <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i> Production Entry
-                    </a>
-                    <a href="{{ url_for('production.index') }}" class="nav-link-custom {% if request.endpoint == 'production.index' %}active{% endif %}">
-                        <i data-lucide="history" style="width: 18px; height: 18px;"></i> Production History
-                    </a>
-                    <a href="{{ url_for('bom.index') }}" class="nav-link-custom {% if 'bom' in request.endpoint %}active{% endif %}">
-                        <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px;"></i> Recipes (BOM)
-                    </a>
-                    <a href="{{ url_for('master.raw_materials') }}" class="nav-link-custom">
-                        <i data-lucide="layers" style="width: 18px; height: 18px;"></i> Raw Materials
-                    </a>
-                    <a href="{{ url_for('inventory.index') }}" class="nav-link-custom">
-                        <i data-lucide="boxes" style="width: 18px; height: 18px;"></i> Stock Check
-                    </a>
-                    <a href="{{ url_for('reports.index', type='consumption_analysis') }}" class="nav-link-custom">
-                        <i data-lucide="sliders" style="width: 18px; height: 18px;"></i> Material Usage
-                    </a>
-                    <a href="{{ url_for('reports.index', type='yield_report') }}" class="nav-link-custom">
-                        <i data-lucide="alert-triangle" style="width: 18px; height: 18px;"></i> Variance Alerts
-                    </a>
-
-                {% elif 'auditor' in user_roles %}
-                    <!-- ACCOUNTANT / AUDITOR SIDEBAR (READ ONLY) -->
-                    <div class="nav-section-title">Audit Registers</div>
-                    <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
-                        <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Dashboard
-                    </a>
-                    <a href="{{ url_for('reports.index', type='sales_register') }}" class="nav-link-custom">
-                        <i data-lucide="file-text" style="width: 18px; height: 18px;"></i> Sales Register
-                    </a>
-                    <a href="{{ url_for('reports.index', type='purchase_register') }}" class="nav-link-custom">
-                        <i data-lucide="shopping-bag" style="width: 18px; height: 18px;"></i> Purchase Register
-                    </a>
-                    <a href="{{ url_for('reports.index', type='gst_outward') }}" class="nav-link-custom">
-                        <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i> GST Summary
-                    </a>
-                    <a href="{{ url_for('inventory.ledger') }}" class="nav-link-custom">
-                        <i data-lucide="book-open" style="width: 18px; height: 18px;"></i> Stock Ledger
-                    </a>
-                    <a href="{{ url_for('reports.index', type='production_report') }}" class="nav-link-custom">
-                        <i data-lucide="factory" style="width: 18px; height: 18px;"></i> Production Register
-                    </a>
-                    <a href="{{ url_for('payments.index') }}" class="nav-link-custom">
-                        <i data-lucide="credit-card" style="width: 18px; height: 18px;"></i> Collections
-                    </a>
-                    <a href="{{ url_for('reports.index', type='customer_outstanding') }}" class="nav-link-custom">
-                        <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i> Outstanding Dues
-                    </a>
-                    <a href="{{ url_for('reports.index') }}" class="nav-link-custom">
-                        <i data-lucide="download" style="width: 18px; height: 18px;"></i> Export Reports
-                    </a>
-
-                {% else %}
-                    <!-- SALESMAN SIDEBAR -->
+                {% elif 'salesman' in user_roles %}
+                    <!-- 3. SALESMAN NAVIGATION -->
                     <div class="nav-section-title">Sales Desk</div>
+                    <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                        <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Dashboard
+                    </a>
                     <a href="{{ url_for('orders.new_order') }}" class="nav-link-custom {% if request.endpoint == 'orders.new_order' %}active{% endif %}">
-                        <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i> New Order
+                        <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i> Create Order
                     </a>
                     <a href="{{ url_for('orders.index') }}" class="nav-link-custom {% if request.endpoint == 'orders.index' %}active{% endif %}">
                         <i data-lucide="shopping-bag" style="width: 18px; height: 18px;"></i> My Orders
                     </a>
-                    <a href="{{ url_for('master.customers') }}" class="nav-link-custom">
+                    <a href="{{ url_for('master.customers') }}" class="nav-link-custom {% if request.endpoint == 'master.customers' %}active{% endif %}">
                         <i data-lucide="users" style="width: 18px; height: 18px;"></i> My Customers
                     </a>
-                    <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom">
-                        <i data-lucide="bar-chart" style="width: 18px; height: 18px;"></i> Performance
+                    <a href="{{ url_for('orders.index') }}" class="nav-link-custom">
+                        <i data-lucide="clock" style="width: 18px; height: 18px;"></i> Order Status
+                    </a>
+                    <a href="{{ url_for('auth.profile') }}" class="nav-link-custom {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+                        <i data-lucide="user" style="width: 18px; height: 18px;"></i> Profile
+                    </a>
+
+                {% elif 'production' in user_roles %}
+                    <!-- 4. PRODUCTION SUPERVISOR NAVIGATION -->
+                    <div class="nav-section-title">Factory Floor</div>
+                    <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                        <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('production.index') }}" class="nav-link-custom {% if request.endpoint == 'production.index' %}active{% endif %}">
+                        <i data-lucide="history" style="width: 18px; height: 18px;"></i> Production Runs
+                    </a>
+                    <a href="{{ url_for('production.new_run') }}" class="nav-link-custom {% if request.endpoint == 'production.new_run' %}active{% endif %}">
+                        <i data-lucide="plus-circle" style="width: 18px; height: 18px;"></i> Create Production Run
+                    </a>
+                    <a href="{{ url_for('bom.index') }}" class="nav-link-custom {% if request.endpoint and 'bom' in request.endpoint %}active{% endif %}">
+                        <i data-lucide="file-spreadsheet" style="width: 18px; height: 18px;"></i> Bill of Materials
+                    </a>
+                    <a href="{{ url_for('master.raw_materials') }}" class="nav-link-custom {% if request.endpoint == 'master.raw_materials' %}active{% endif %}">
+                        <i data-lucide="layers" style="width: 18px; height: 18px;"></i> Raw Materials
+                    </a>
+                    <a href="{{ url_for('reports.index', type='consumption_analysis') }}" class="nav-link-custom {% if request.args.get('type') == 'consumption_analysis' %}active{% endif %}">
+                        <i data-lucide="sliders" style="width: 18px; height: 18px;"></i> Material Consumption
+                    </a>
+                    <a href="{{ url_for('master.products') }}" class="nav-link-custom {% if request.endpoint == 'master.products' %}active{% endif %}">
+                        <i data-lucide="package" style="width: 18px; height: 18px;"></i> Finished Goods
+                    </a>
+                    <a href="{{ url_for('inventory.ledger') }}" class="nav-link-custom {% if request.endpoint == 'inventory.ledger' %}active{% endif %}">
+                        <i data-lucide="book-open" style="width: 18px; height: 18px;"></i> Stock Ledger
+                    </a>
+                    <a href="{{ url_for('auth.profile') }}" class="nav-link-custom {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+                        <i data-lucide="user" style="width: 18px; height: 18px;"></i> Profile
+                    </a>
+
+                {% elif 'auditor' in user_roles %}
+                    <!-- 5. ACCOUNTANT / AUDITOR NAVIGATION (READ ONLY) -->
+                    <div class="nav-section-title">Audit Registers</div>
+                    <a href="{{ url_for('dashboard.index') }}" class="nav-link-custom {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                        <i data-lucide="layout-dashboard" style="width: 18px; height: 18px;"></i> Dashboard
+                    </a>
+                    <a href="{{ url_for('reports.index', type='sales_register') }}" class="nav-link-custom {% if request.args.get('type') == 'sales_register' %}active{% endif %}">
+                        <i data-lucide="file-text" style="width: 18px; height: 18px;"></i> Sales Register
+                    </a>
+                    <a href="{{ url_for('reports.index', type='purchase_register') }}" class="nav-link-custom {% if request.args.get('type') == 'purchase_register' %}active{% endif %}">
+                        <i data-lucide="shopping-bag" style="width: 18px; height: 18px;"></i> Purchase Register
+                    </a>
+                    <a href="{{ url_for('invoices.index') }}" class="nav-link-custom {% if request.endpoint == 'invoices.index' %}active{% endif %}">
+                        <i data-lucide="receipt" style="width: 18px; height: 18px;"></i> Invoice Register
+                    </a>
+                    <a href="{{ url_for('payments.index') }}" class="nav-link-custom {% if request.endpoint == 'payments.index' %}active{% endif %}">
+                        <i data-lucide="credit-card" style="width: 18px; height: 18px;"></i> Payment Register
+                    </a>
+                    <a href="{{ url_for('reports.index', type='gst_outward') }}" class="nav-link-custom {% if request.args.get('type') == 'gst_outward' %}active{% endif %}">
+                        <i data-lucide="shield-check" style="width: 18px; height: 18px;"></i> GST Reports
+                    </a>
+                    <a href="{{ url_for('reports.index', type='customer_outstanding') }}" class="nav-link-custom {% if request.args.get('type') == 'customer_outstanding' %}active{% endif %}">
+                        <i data-lucide="alert-circle" style="width: 18px; height: 18px;"></i> Outstanding Reports
+                    </a>
+                    <a href="{{ url_for('reports.index', type='cost_per_packet') }}" class="nav-link-custom {% if request.args.get('type') == 'cost_per_packet' %}active{% endif %}">
+                        <i data-lucide="pie-chart" style="width: 18px; height: 18px;"></i> Production Cost Reports
+                    </a>
+                    <a href="{{ url_for('reports.index', type='finished_goods_stock') }}" class="nav-link-custom {% if request.args.get('type') == 'finished_goods_stock' %}active{% endif %}">
+                        <i data-lucide="boxes" style="width: 18px; height: 18px;"></i> Inventory Valuation
+                    </a>
+                    <a href="{{ url_for('reports.index', type='stock_movement') }}" class="nav-link-custom {% if request.args.get('type') == 'stock_movement' %}active{% endif %}">
+                        <i data-lucide="history" style="width: 18px; height: 18px;"></i> Audit Logs
+                    </a>
+                    <a href="{{ url_for('reports.index') }}" class="nav-link-custom {% if request.endpoint == 'reports.index' and not request.args.get('type') %}active{% endif %}">
+                        <i data-lucide="download" style="width: 18px; height: 18px;"></i> Export Reports
+                    </a>
+                    <a href="{{ url_for('auth.profile') }}" class="nav-link-custom {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+                        <i data-lucide="user" style="width: 18px; height: 18px;"></i> Profile
                     </a>
                 {% endif %}
+                
+                <div class="mt-3 pt-3 border-top">
+                    <a href="{{ url_for('auth.logout') }}" class="nav-link-custom text-danger">
+                        <i data-lucide="log-out" style="width: 18px; height: 18px;"></i> Logout
+                    </a>
+                </div>
             </div>
             
             <div class="sidebar-footer">
                 <div class="d-flex align-items-center gap-2">
-                    <div class="rounded-circle bg-secondary text-white d-flex align-items-center justify-content-center" style="width: 32px; height: 32px; font-size: 0.85rem; font-weight: 600;">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 34px; height: 34px; font-size: 0.85rem; font-weight: 700;">
                         {{ current_user.full_name[:1] }}
                     </div>
                     <div class="overflow-hidden" style="flex-grow: 1;">
                         <div class="text-truncate fw-semibold" style="font-size: 0.85rem;">{{ current_user.full_name }}</div>
-                        <div class="text-muted" style="font-size: 0.72rem; text-transform: capitalize;">{{ current_user.primary_role }}</div>
+                        <div class="text-muted text-uppercase" style="font-size: 0.7rem; font-weight: 600;">{{ current_user.primary_role }}</div>
                     </div>
-                    <a href="{{ url_for('auth.logout') }}" class="text-muted p-1" title="Logout">
-                        <i data-lucide="log-out" style="width: 18px; height: 18px;"></i>
+                    <a href="{{ url_for('auth.profile') }}" class="text-muted p-1" title="User Profile">
+                        <i data-lucide="settings" style="width: 16px; height: 16px;"></i>
                     </a>
                 </div>
             </div>
         </aside>
+        <div class="sidebar-backdrop d-md-none" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
         {% endif %}
 
-        <!-- Main Wrapper -->
-        <div class="main-content">
+        <!-- Main Content Area -->
+        <div class="main-content {% if not current_user.is_authenticated %}no-sidebar{% endif %}">
             {% if current_user.is_authenticated %}
             <!-- Compact Top Navigation -->
             <header class="top-nav">
                 <div class="d-flex align-items-center gap-2">
+                    <button type="button" class="btn btn-sm d-md-none p-1 me-1 text-muted border" onclick="toggleSidebar()" aria-label="Toggle menu">
+                        <i data-lucide="menu" style="width: 20px; height: 20px;"></i>
+                    </button>
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle fw-semibold" style="font-size: 0.75rem;">
                         {{ config.SUPPLIER_FACTORY_NAME }}
                     </span>
-                    <span class="text-muted" style="font-size: 0.8rem;">
+                    <span class="text-muted d-none d-sm-inline" style="font-size: 0.8rem;">
                         | GSTIN: <strong>{{ config.SUPPLIER_GSTIN }}</strong> (Tamil Nadu)
                     </span>
                 </div>
                 
-                <div class="d-flex align-items-center gap-3">
-                    <span class="badge bg-light text-dark border" style="font-size: 0.75rem;">
-                        Role: <strong class="text-uppercase">{{ current_user.primary_role }}</strong>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-dark border text-uppercase" style="font-size: 0.75rem;">
+                        Role: <strong>{{ current_user.primary_role }}</strong>
                     </span>
-                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm" style="font-size: 0.8rem; padding: 0.25rem 0.65rem;">
-                        <i data-lucide="log-out" style="width: 14px; height: 14px; margin-right: 4px;"></i> Logout
+                    <a href="{{ url_for('auth.profile') }}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 0.8rem;" title="My Profile">
+                        <i data-lucide="user" style="width: 14px; height: 14px;"></i>
+                    </a>
+                    <a href="{{ url_for('auth.logout') }}" class="btn btn-outline-danger btn-sm py-1 px-2" style="font-size: 0.8rem;" title="Logout">
+                        <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
                     </a>
                 </div>
             </header>
@@ -221,11 +252,11 @@
 
             <!-- Page Body -->
             <main class="page-container">
-                <!-- Flash Alerts -->
+                <!-- Flash Messages -->
                 {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, message in messages %}
-                            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert" style="font-size: 0.875rem;">
+                            <div class="alert alert-{{ category }} alert-dismissible fade show mb-3" role="alert" style="font-size: 0.875rem;">
                                 {{ message }}
                                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                             </div>
@@ -256,6 +287,10 @@
                 <i data-lucide="users" style="width: 20px; height: 20px;"></i>
                 <span>Customers</span>
             </a>
+            <a href="{{ url_for('auth.profile') }}" class="mobile-nav-item {% if request.endpoint == 'auth.profile' %}active{% endif %}">
+                <i data-lucide="user" style="width: 20px; height: 20px;"></i>
+                <span>Profile</span>
+            </a>
         </nav>
         {% endif %}
     </div>
@@ -267,6 +302,17 @@
     <script>
         if (window.lucide) {
             lucide.createIcons();
+        }
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('appSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            if (sidebar) {
+                sidebar.classList.toggle('show');
+            }
+            if (backdrop) {
+                backdrop.classList.toggle('show');
+            }
         }
     </script>
     {% block extra_scripts %}{% endblock %}

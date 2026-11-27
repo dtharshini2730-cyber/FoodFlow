@@ -3,7 +3,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, flash,
 from flask_login import login_required, current_user
 from app import db
 from app.models.master import Customer, Supplier, Product, RawMaterial, PackagingMaterial, Unit
-from app.models.user import User
+from app.models.user import User, Role
 from app.models.audit import AuditLog
 from app.utils.decorators import roles_required, role_forbidden
 
@@ -261,3 +261,86 @@ def add_packaging():
     
     flash(f"Packaging material '{name}' added.", 'success')
     return redirect(url_for('master.packaging'))
+
+
+# ---------------- USER MANAGEMENT ----------------
+@master_bp.route('/users')
+@login_required
+@roles_required('admin')
+def users():
+    users_list = User.query.order_by(User.id.asc()).all()
+    roles_list = Role.query.all()
+    return render_template('master/users.html', users=users_list, roles=roles_list)
+
+
+@master_bp.route('/users/add', methods=['POST'])
+@login_required
+@roles_required('admin')
+def add_user():
+    full_name = request.form.get('full_name', '').strip()
+    username = request.form.get('username', '').strip().lower()
+    email = request.form.get('email', '').strip().lower()
+    phone = request.form.get('phone', '').strip()
+    role_name = request.form.get('role', 'salesman').strip().lower()
+    password = request.form.get('password', '')
+    
+    if not full_name or not username or not email or not password:
+        flash('Full Name, Username, Email, and Password are required.', 'danger')
+        return redirect(url_for('master.users'))
+        
+    existing = User.query.filter((User.email == email) | (User.username == username)).first()
+    if existing:
+        flash(f"A user with email '{email}' or username '{username}' already exists.", 'danger')
+        return redirect(url_for('master.users'))
+        
+    role = Role.query.filter_by(name=role_name).first()
+    if not role:
+        flash(f"Invalid role '{role_name}'.", 'danger')
+        return redirect(url_for('master.users'))
+        
+    new_user = User(
+        full_name=full_name,
+        username=username,
+        email=email,
+        phone=phone,
+        is_active=True
+    )
+    new_user.set_password(password)
+    new_user.roles.append(role)
+    db.session.add(new_user)
+    db.session.commit()
+    
+    AuditLog.log(
+        user_id=current_user.id,
+        action='CREATE',
+        module='Users',
+        record_id=new_user.id,
+        new_values={'email': email, 'role': role_name},
+        description=f"Admin created user account '{full_name}' ({email}) with role '{role_name}'."
+    )
+    flash(f"User account '{full_name}' created successfully with role '{role_name}'.", 'success')
+    return redirect(url_for('master.users'))
+
+
+@master_bp.route('/users/<int:id>/toggle-status', methods=['POST'])
+@login_required
+@roles_required('admin')
+def toggle_user_status(id):
+    if id == current_user.id:
+        flash('You cannot deactivate your own account.', 'warning')
+        return redirect(url_for('master.users'))
+        
+    target_user = User.query.get_or_404(id)
+    target_user.is_active = not target_user.is_active
+    db.session.commit()
+    
+    status_str = "activated" if target_user.is_active else "deactivated"
+    AuditLog.log(
+        user_id=current_user.id,
+        action='UPDATE',
+        module='Users',
+        record_id=target_user.id,
+        description=f"User '{target_user.email}' was {status_str} by {current_user.email}."
+    )
+    flash(f"User '{target_user.full_name}' has been {status_str}.", 'info')
+    return redirect(url_for('master.users'))

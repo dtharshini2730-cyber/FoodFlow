@@ -1,0 +1,172 @@
+{% extends 'base.html' %}
+
+{% block title %}Accountant & Audit Dashboard - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Financial & Statutory Audit Workspace</h1>
+        <p class="text-muted small mb-0">Read-only accounting overview, GST returns reconciliation, receivables ageing, and audit registers.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('reports.index', type='sales_register', export='excel') }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
+            <i data-lucide="sheet" style="width: 14px; height: 14px;"></i> Export Sales Register (.xlsx)
+        </a>
+        <a href="{{ url_for('reports.index', type='gst_outward') }}" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+            <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> GSTR-1 Reconciliation
+        </a>
+    </div>
+</div>
+
+<!-- 6 Financial Audit KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Total Invoiced Amount</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ total_invoiced | inr }}</div>
+            <div class="text-muted small mt-1">Cumulative tax invoice revenue</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-success">
+            <div class="text-muted small fw-semibold text-uppercase">Total Payments Received</div>
+            <div class="h3 fw-bold text-success mt-2 mb-0">{{ total_payments | inr }}</div>
+            <div class="text-muted small mt-1">Realized collections to bank/cash</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-danger">
+            <div class="text-muted small fw-semibold text-uppercase">Outstanding Receivables</div>
+            <div class="h3 fw-bold text-danger mt-2 mb-0">{{ total_outstanding | inr }}</div>
+            <div class="text-muted small mt-1">Unpaid customer dues</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">Total GST Liability</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ total_gst | inr }}</div>
+            <div class="text-muted small mt-1">CGST + SGST + IGST combined</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Current Month Sales</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ current_month_sales | inr }}</div>
+            <div class="text-muted small mt-1">Monthly billing turnover</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-secondary">
+            <div class="text-muted small fw-semibold text-uppercase">Total Production Cost</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ total_production_cost | inr }}</div>
+            <div class="text-muted small mt-1">Cost of manufactured goods</div>
+        </div>
+    </div>
+</div>
+
+<!-- Statutory Registers Export Bar -->
+<div class="card card-custom p-3 mb-4 bg-light border">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="fw-semibold text-dark small me-2">Download Statutory Registers:</span>
+        <a href="{{ url_for('reports.index', type='sales_register') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="file-text" style="width: 14px; height: 14px; margin-right: 4px;"></i> Sales Register
+        </a>
+        <a href="{{ url_for('reports.index', type='purchase_register') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="shopping-bag" style="width: 14px; height: 14px; margin-right: 4px;"></i> Purchase Register
+        </a>
+        <a href="{{ url_for('reports.index', type='gst_outward') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="shield-check" style="width: 14px; height: 14px; margin-right: 4px;"></i> GST Summary
+        </a>
+        <a href="{{ url_for('reports.index', type='customer_ageing') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="clock" style="width: 14px; height: 14px; margin-right: 4px;"></i> Ageing Report
+        </a>
+        <a href="{{ url_for('inventory.ledger') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="book-open" style="width: 14px; height: 14px; margin-right: 4px;"></i> Stock Ledger
+        </a>
+        <a href="{{ url_for('reports.index', type='cost_per_packet') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="pie-chart" style="width: 14px; height: 14px; margin-right: 4px;"></i> Costing Report
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- GST Outward Supplies Summary -->
+    <div class="col-lg-6">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h2 class="h6 fw-bold mb-0 text-dark">GST Outward Supplies (GSTR-1 Reconciliation)</h2>
+                <a href="{{ url_for('reports.index', type='gst_outward') }}" class="small text-primary text-decoration-none">Full Report</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Supply Type</th>
+                            <th class="text-end">Taxable (₹)</th>
+                            <th class="text-end">Tax (₹)</th>
+                            <th class="text-end">Total (₹)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Intrastate (Tamil Nadu B2B/B2C)</td>
+                            <td class="text-end">{{ gst_outward['intrastate_taxable'] | inr }}</td>
+                            <td class="text-end">{{ (gst_outward['intrastate_cgst'] + gst_outward['intrastate_sgst']) | inr }}</td>
+                            <td class="text-end fw-semibold">{{ (gst_outward['intrastate_taxable'] + gst_outward['intrastate_cgst'] + gst_outward['intrastate_sgst']) | inr }}</td>
+                        </tr>
+                        <tr>
+                            <td>Interstate (Karnataka & Others)</td>
+                            <td class="text-end">{{ gst_outward['interstate_taxable'] | inr }}</td>
+                            <td class="text-end">{{ gst_outward['interstate_igst'] | inr }}</td>
+                            <td class="text-end fw-semibold">{{ (gst_outward['interstate_taxable'] + gst_outward['interstate_igst']) | inr }}</td>
+                        </tr>
+                        <tr class="table-light fw-bold">
+                            <td>Total Outward Supplies</td>
+                            <td class="text-end">{{ gst_outward['total_taxable'] | inr }}</td>
+                            <td class="text-end text-primary">{{ gst_outward['total_tax'] | inr }}</td>
+                            <td class="text-end text-success">{{ gst_outward['grand_total'] | inr }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Receivables Ageing Overview -->
+    <div class="col-lg-6">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h2 class="h6 fw-bold mb-0 text-dark">Customer Receivables Ageing</h2>
+                <a href="{{ url_for('reports.index', type='customer_ageing') }}" class="small text-primary text-decoration-none">Full Ageing</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Customer</th>
+                            <th class="text-end">0 - 30 Days</th>
+                            <th class="text-end">> 30 Days</th>
+                            <th class="text-end">Total Due</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for a in ageing %}
+                        <tr>
+                            <td><strong class="text-dark">{{ a.customer_name }}</strong></td>
+                            <td class="text-end">{{ a.bucket_0_30 | inr }}</td>
+                            <td class="text-end text-danger fw-semibold">{{ (a.bucket_31_60 + a.bucket_61_90 + a.bucket_90_plus) | inr }}</td>
+                            <td class="text-end fw-bold">{{ a.total_outstanding | inr }}</td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center py-4 text-muted small">No outstanding receivables found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

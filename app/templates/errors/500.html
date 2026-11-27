@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}500 - Internal Server Error - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center align-items-center" style="min-height: 60vh;">
+    <div class="col-md-6 col-lg-5 text-center">
+        <div class="mb-4">
+            <div class="rounded-circle bg-danger-subtle text-danger d-inline-flex align-items-center justify-content-center mb-3" style="width: 72px; height: 72px;">
+                <i data-lucide="server-crash" style="width: 36px; height: 36px;"></i>
+            </div>
+            <h1 class="h3 fw-bold text-dark mb-2">500 - Something Went Wrong</h1>
+            <p class="text-muted">An unexpected server error occurred while processing your request. Our technical team has been notified and the error event has been recorded in the application log.</p>
+        </div>
+
+        <div class="card card-custom p-3 bg-light border mb-4 text-start small">
+            <div class="fw-semibold text-dark mb-1">Recommended Action:</div>
+            <div class="text-muted">
+                Please try refreshing the page or navigating back to your dashboard. If the issue persists, contact the factory ERP administrator with the approximate time of occurrence.
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-2">
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary-custom btn-sm px-4">
+                <i data-lucide="home" style="width: 16px; height: 16px; margin-right: 4px;"></i> Return to Dashboard
+            </a>
+            <button onclick="window.history.back()" class="btn btn-outline-secondary btn-sm px-4">
+                <i data-lucide="arrow-left" style="width: 16px; height: 16px; margin-right: 4px;"></i> Go Back
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

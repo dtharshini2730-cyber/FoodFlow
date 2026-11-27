@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from flask import Blueprint, render_template, request, Response, send_file
+from flask import Blueprint, render_template, request, Response, send_file, abort
 from flask_login import login_required, current_user
 from app.services.report_service import ReportService
 from app.utils.decorators import roles_required
@@ -10,9 +10,27 @@ reports_bp = Blueprint('reports', __name__)
 
 @reports_bp.route('/')
 @login_required
-@roles_required('owner', 'admin', 'auditor')
 def index():
-    report_type = request.args.get('type', 'sales_register')
+    user_roles = [r.name for r in current_user.roles]
+    # Salesman cannot access statutory or company reports
+    if 'salesman' in user_roles and 'owner' not in user_roles and 'admin' not in user_roles:
+        abort(403)
+        
+    report_type = request.args.get('type')
+    
+    # Production Supervisor can only view manufacturing and stock reports
+    production_allowed = [
+        'consumption_analysis', 'yield_report', 'wastage_report',
+        'production_report', 'raw_material_stock', 'packaging_stock', 'finished_goods_stock'
+    ]
+    if 'production' in user_roles and 'owner' not in user_roles and 'admin' not in user_roles:
+        if not report_type:
+            report_type = 'consumption_analysis'
+        elif report_type not in production_allowed:
+            abort(403)
+    else:
+        if not report_type:
+            report_type = 'sales_register'
     start_date_str = request.args.get('start_date', '')
     end_date_str = request.args.get('end_date', '')
     export_format = request.args.get('export', '')

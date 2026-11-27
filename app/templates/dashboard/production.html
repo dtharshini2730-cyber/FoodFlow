@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+
+{% block title %}Production Floor Dashboard - FoodFlow ERP{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h4 fw-bold text-dark mb-1">Production & Factory Floor Workspace</h1>
+        <p class="text-muted small mb-0">Manufacturing batch runs, recipe BOM execution, actual material consumption, and yield tracking.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('production.new_run') }}" class="btn btn-primary-custom btn-sm fw-bold d-flex align-items-center gap-1 shadow-sm px-3 py-2">
+            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Record Production Entry
+        </a>
+    </div>
+</div>
+
+<!-- 7 Production KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Today's Production</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ todays_production | qty('pkts') }}</div>
+            <div class="text-muted small mt-1">Packets packaged today</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-info">
+            <div class="text-muted small fw-semibold text-uppercase">Planned Output</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ total_planned | qty('pkts') }}</div>
+            <div class="text-muted small mt-1">Expected standard yield</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-success">
+            <div class="text-muted small fw-semibold text-uppercase">Actual Production</div>
+            <div class="h3 fw-bold text-success mt-2 mb-0">{{ total_actual | qty('pkts') }}</div>
+            <div class="text-muted small mt-1">Good saleable output</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-warning">
+            <div class="text-muted small fw-semibold text-uppercase">Material Readiness</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ avail_count }} / {{ total_materials }}</div>
+            <div class="text-muted small mt-1">Materials above reorder</div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-primary">
+            <div class="text-muted small fw-semibold text-uppercase">Finished Goods Produced</div>
+            <div class="h3 fw-bold text-primary mt-2 mb-0">{{ fg_produced_total | qty('pkts') }}</div>
+            <div class="text-muted small mt-1">Total packaged output to date</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-secondary">
+            <div class="text-muted small fw-semibold text-uppercase">Total Batches Run</div>
+            <div class="h3 fw-bold text-dark mt-2 mb-0">{{ pending_runs | length }}</div>
+            <div class="text-muted small mt-1">Recorded production runs</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-4">
+        <div class="card card-custom p-3 h-100 border-start border-4 border-danger">
+            <div class="text-muted small fw-semibold text-uppercase">Variance Alerts (>3%)</div>
+            <div class="h3 fw-bold {{ 'text-danger' if variance_alerts_count > 0 else 'text-success' }} mt-2 mb-0">
+                {{ variance_alerts_count }}
+            </div>
+            <div class="text-muted small mt-1">Runs exceeding standard tolerance</div>
+        </div>
+    </div>
+</div>
+
+<!-- Production Quick Actions -->
+<div class="card card-custom p-3 mb-4 bg-light border">
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        <span class="fw-semibold text-dark small me-2">Production Shortcuts:</span>
+        <a href="{{ url_for('production.new_run') }}" class="btn btn-primary-custom btn-sm">
+            <i data-lucide="plus-circle" style="width: 14px; height: 14px; margin-right: 4px;"></i> Record Batch Run
+        </a>
+        <a href="{{ url_for('bom.index') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="file-spreadsheet" style="width: 14px; height: 14px; margin-right: 4px;"></i> Bill of Materials
+        </a>
+        <a href="{{ url_for('master.raw_materials') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="layers" style="width: 14px; height: 14px; margin-right: 4px;"></i> Raw Material Master
+        </a>
+        <a href="{{ url_for('reports.index', type='consumption_analysis') }}" class="btn btn-outline-secondary btn-sm bg-white">
+            <i data-lucide="sliders" style="width: 14px; height: 14px; margin-right: 4px;"></i> Consumption Analysis
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Recent Production Runs -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h2 class="h6 fw-bold mb-0 text-dark">Recent Manufacturing Runs</h2>
+                <a href="{{ url_for('production.index') }}" class="small text-primary text-decoration-none">View All Runs</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Run #</th>
+                            <th>Date</th>
+                            <th>Product</th>
+                            <th class="text-end">Good Output</th>
+                            <th class="text-end">Yield Var %</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in pending_runs %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('production.view', id=r.id) }}" class="fw-semibold text-primary text-decoration-none">
+                                    {{ r.run_number }}
+                                </a>
+                            </td>
+                            <td>{{ r.production_date | date_in }}</td>
+                            <td>{{ r.product.name }}</td>
+                            <td class="text-end fw-semibold">{{ r.actual_output | qty('pkts') }}</td>
+                            <td class="text-end fw-bold {{ 'text-danger' if r.yield_variance_alert else 'text-success' }}">
+                                {{ r.yield_variance_pct }}%
+                            </td>
+                            <td class="text-center">
+                                <span class="badge-status badge-{{ r.status }}">
+                                    {{ r.status | capitalize }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <a href="{{ url_for('production.view', id=r.id) }}" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size: 0.75rem;">
+                                    View
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted small">No production runs recorded yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Raw Material Stock Status -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <h2 class="h6 fw-bold mb-0 text-dark">Material & Packaging Stock</h2>
+                <a href="{{ url_for('master.raw_materials') }}" class="small text-primary text-decoration-none">Manage Materials</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0" style="font-size: 0.85rem;">
+                    <thead>
+                        <tr class="text-muted">
+                            <th>Material</th>
+                            <th class="text-end">Current Stock</th>
+                            <th class="text-center">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in materials %}
+                        <tr>
+                            <td>
+                                <strong class="text-dark">{{ m.name }}</strong>
+                                <div class="text-muted small">Reorder: {{ m.reorder | qty(m.unit) }}</div>
+                            </td>
+                            <td class="text-end fw-bold {{ 'text-danger' if m.status == 'Low Stock' else 'text-dark' }}">
+                                {{ m.current | qty(m.unit) }}
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-{{ 'danger' if m.status == 'Low Stock' else 'success' }}-subtle text-{{ 'danger' if m.status == 'Low Stock' else 'success' }} border border-{{ 'danger' if m.status == 'Low Stock' else 'success' }}-subtle" style="font-size: 0.72rem;">
+                                    {{ m.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
